@@ -1,0 +1,47 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://merciyanis.com/schemas/uplink-v1.json",
+  "title": "NOC Canonical Uplink v1",
+  "description": "Internal normalized representation of a LoRaWAN uplink. Decouples storage from TTS version quirks; ML service consumes this contract directly.",
+  "type": "object",
+  "required": [
+    "schema_version", "received_at", "device_eui", "f_cnt_up",
+    "sf", "data_rate", "frequency", "gateway_count", "gateways"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "schema_version":     { "const": 1 },
+    "received_at":        { "type": "string", "format": "date-time" },
+    "device_eui":         { "type": "string", "pattern": "^[0-9A-F]{16}$" },
+    "dev_addr":           { "type": ["string", "null"], "pattern": "^[0-9A-F]{8}$" },
+    "app_id":             { "type": ["string", "null"] },
+    "device_id":          { "type": ["string", "null"] },
+    "f_cnt_up":           { "type": "integer", "minimum": 0 },
+    "f_port":             { "type": ["integer", "null"], "minimum": 0, "maximum": 255 },
+    "sf":                 { "type": "integer", "minimum": 7, "maximum": 12 },
+    "data_rate":          { "type": "string" },
+    "frequency":          { "type": "number", "minimum": 0 },
+    "consumed_airtime_s": { "type": ["number", "null"], "minimum": 0 },
+    "decoded_payload":    { "type": ["object", "null"] },
+    "best_rssi":          { "type": ["number", "null"] },
+    "best_snr":            { "type": ["number", "null"] },
+    "gateway_count":      { "type": "integer", "minimum": 0 },
+    "raw_payload_b64":    { "type": ["string", "null"] },
+    "correlation_id":     { "type": ["string", "null"] },
+    "gateways": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["gateway_eui", "rssi", "snr"],
+        "properties": {
+          "gateway_eui":   { "type": "string", "pattern": "^[0-9A-F]{16}$" },
+          "gateway_id":    { "type": ["string", "null"] },
+          "rssi":          { "type": "number" },
+          "snr":           { "type": "number" },
+          "channel_index": { "type": ["integer", "null"] },
+          "channel_rssi":  { "type": ["number", "null"] }
+        }
+      }
+    }
+  }
+}

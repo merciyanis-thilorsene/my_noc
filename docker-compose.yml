@@ -1,0 +1,121 @@
+services:
+  proxy:
+    image: traefik:v3.1
+    container_name: mynoc-proxy
+    command:
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      - --entrypoints.web.address=:80
+      - --api.dashboard=${TRAEFIK_DASHBOARD:-false}
+      - --api.insecure=${TRAEFIK_DASHBOARD:-false}
+      - --log.level=${TRAEFIK_LOG_LEVEL:-INFO}
+    ports:
+      - "${PROXY_HTTP_PORT:-8080}:80"
+      - "${TRAEFIK_DASHBOARD_PORT:-8081}:8080"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks: [noc_net]
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:2.16.1-pg16
+    container_name: mynoc-timescaledb
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-noc}
+      POSTGRES_USER: ${POSTGRES_USER:-noc}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - tsdb_data:/var/lib/postgresql/data
+    networks: [noc_net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-noc} -d ${POSTGRES_DB:-noc}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: mynoc-redis
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MAXMEMORY:-128mb}
+      --maxmemory-policy allkeys-lru
+      --appendonly no
+      --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    volumes:
+      - redis_data:/data
+    networks: [noc_net]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli -a \"$$REDIS_PASSWORD\" ping | grep -q PONG"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+
+  noc_core:
+    build:
+      context: ./backend
+    container_name: mynoc-core
+    environment:
+      NODE_ENV: ${NODE_ENV:-production}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      PORT: 3000
+      DATABASE_URL: postgres://${POSTGRES_USER:-noc}:${POSTGRES_PASSWORD}@timescaledb:5432/${POSTGRES_DB:-noc}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      TTS_BASE_URL: ${TTS_BASE_URL:-}
+      TTS_API_KEY: ${TTS_API_KEY:-}
+      TTS_APP_IDS: ${TTS_APP_IDS:-}
+      TTS_WEBHOOK_SECRET: ${TTS_WEBHOOK_SECRET:-}
+      TTS_POLL_INTERVAL_SEC: ${TTS_POLL_INTERVAL_SEC:-300}
+      WMC_BASE_URL: ${WMC_BASE_URL:-}
+      WMC_LOGIN: ${WMC_LOGIN:-}
+      WMC_PASSWORD: ${WMC_PASSWORD:-}
+      WMC_POLL_INTERVAL_SEC: ${WMC_POLL_INTERVAL_SEC:-120}
+      FRONTEND_API_KEYS: ${FRONTEND_API_KEYS:?FRONTEND_API_KEYS is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      ML_SERVICE_URL: ${ML_SERVICE_URL:-}
+    depends_on:
+      timescaledb: { condition: service_healthy }
+      redis:       { condition: service_healthy }
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.noc_core.loadbalancer.server.port=3000
+      - traefik.http.routers.noc_api.rule=PathPrefix(`/api`)
+      - traefik.http.routers.noc_api.entrypoints=web
+      - traefik.http.routers.noc_api.service=noc_core
+      - traefik.http.routers.noc_ws.rule=PathPrefix(`/ws`)
+      - traefik.http.routers.noc_ws.entrypoints=web
+      - traefik.http.routers.noc_ws.service=noc_core
+      - traefik.http.routers.noc_webhook.rule=PathPrefix(`/webhooks`)
+      - traefik.http.routers.noc_webhook.entrypoints=web
+      - traefik.http.routers.noc_webhook.service=noc_core
+    networks: [noc_net]
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: mynoc-frontend
+    environment:
+      BACKEND_URL: ${FRONTEND_BACKEND_URL:-}
+    depends_on: [noc_core]
+    labels:
+      - traefik.enable=true
+      - traefik.http.services.frontend.loadbalancer.server.port=80
+      - traefik.http.routers.frontend.rule=PathPrefix(`/`)
+      - traefik.http.routers.frontend.entrypoints=web
+      - traefik.http.routers.frontend.service=frontend
+      - traefik.http.routers.frontend.priority=1
+    networks: [noc_net]
+    restart: unless-stopped
+
+networks:
+  noc_net:
+    driver: bridge
+
+volumes:
+  tsdb_data:
+  redis_data:
