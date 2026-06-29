@@ -1,0 +1,1 @@
+{"root":["./src/api.ts","./src/main.tsx","./src/components/layout.tsx","./src/components/serieschart.tsx","./src/components/uplotchart.tsx","./src/components/ui.tsx","./src/lib/format.ts","./src/lib/uplot.ts","./src/pages/devicedetail.tsx","./src/pages/devices.tsx","./src/pages/overview.tsx"],"errors":true,"version":"5.9.3"}

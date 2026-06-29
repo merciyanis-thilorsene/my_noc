@@ -1,0 +1,33 @@
+services:
+  device-monitor:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: lorawan-device-monitor:latest
+    # Host 8080 is taken by another workspace service, so expose on 8090.
+    ports:
+      - "8090:8080"
+    volumes:
+      - monitor_data:/data
+    environment:
+      - PORT=8080
+      - DATABASE_PATH=/data/monitor.db
+      - WEBHOOK_SECRET_FILE=/run/secrets/webhook_secret
+      - LOG_LEVEL=info
+      - RETENTION_DAYS=180
+      - CLEANUP_HOUR_UTC=3
+    secrets:
+      - webhook_secret
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:8080/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+secrets:
+  webhook_secret:
+    file: ./secrets/webhook_secret.txt
+
+volumes:
+  monitor_data:
