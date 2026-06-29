@@ -202,7 +202,11 @@ function detailHandler(db: Db, request: FastifyRequest, reply: FastifyReply): un
     '30d': deviceWindowSummary(db, device.dev_eui, parseRange('30d', undefined, now)),
     '180d': deviceWindowSummary(db, device.dev_eui, parseRange('180d', undefined, now)),
   };
-  return { device, metrics: windows };
+  // Most recent spreading factor — needed to evaluate the SNR margin over the SF demod floor.
+  const latest = db.prepare(
+    'SELECT sf FROM uplinks WHERE dev_eui = ? ORDER BY timestamp DESC LIMIT 1',
+  ).get(device.dev_eui) as { sf: number | null } | undefined;
+  return { device, current_sf: latest?.sf ?? null, metrics: windows };
 }
 
 /**

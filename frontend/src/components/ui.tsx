@@ -1,4 +1,15 @@
 import { ReactNode } from 'react';
+import { LinkHealth } from '../lib/link';
+
+/** Warning triangle shown for devices whose RF link needs action; hover for the reason. */
+export function AlertIcon({ health }: { health: LinkHealth }) {
+  if (health.level === 'ok') return null;
+  return (
+    <span className={`alert ${health.level}`} title={health.reasons.join(' · ')} aria-label="needs action">
+      ⚠
+    </span>
+  );
+}
 
 export function Kpi({ label, value, sub, tone }: {
   label: string; value: ReactNode; sub?: ReactNode; tone?: 'ok' | 'warn' | 'crit';

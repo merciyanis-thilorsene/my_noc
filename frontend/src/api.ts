@@ -70,6 +70,7 @@ export type WindowMetrics = Record<string, number | null>;
 
 export interface DeviceDetail {
   device: DeviceRecord;
+  current_sf: number | null;
   metrics: Record<string, WindowMetrics>;
 }
 

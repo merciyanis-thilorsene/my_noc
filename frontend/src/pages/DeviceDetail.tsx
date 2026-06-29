@@ -6,6 +6,7 @@ import {
 import {
   Kpi, TimeRange, Range, SfBadge, StatusBadge, lossTone,
 } from '../components/ui';
+import { linkHealth } from '../lib/link';
 import SeriesChart from '../components/SeriesChart';
 import {
   aligned, barOptions, bandOptions, eventData, eventTimelineOptions, lineOptions, lossData, lossOptions,
@@ -58,6 +59,9 @@ export default function DeviceDetail() {
   const dev = useDevice(devEui);
   const m = dev.data?.metrics[KPI_WINDOW[range]] ?? {};
   const device = dev.data?.device;
+  // Link health from the 24h window's RF averages + current SF (LoRa demod-margin based).
+  const m24 = dev.data?.metrics['24h'] ?? {};
+  const health = linkHealth(m24.avg_rssi ?? null, m24.avg_snr ?? null, dev.data?.current_sf ?? null);
 
   if (dev.isLoading) return <div className="loading">Loading device…</div>;
   if (dev.error || !device) return <div className="error">Device not found.</div>;
@@ -68,6 +72,11 @@ export default function DeviceDetail() {
         <Link to="/devices" className="muted">← Devices</Link>
         <h1 style={{ marginLeft: 8 }}>{device.name ?? device.device_id}</h1>
         <StatusBadge lastSeen={device.last_seen_at} />
+        {health.level !== 'ok' ? (
+          <span className={`badge ${health.level}`} title={health.reasons.join(' · ')}>
+            ⚠ link {health.level === 'crit' ? 'critical' : 'at risk'}
+          </span>
+        ) : null}
         <div className="spacer" style={{ flex: 1 }} />
         <TimeRange value={range} onChange={setRange} />
       </div>

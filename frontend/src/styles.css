@@ -133,6 +133,12 @@ input.search { min-width: 240px; }
 
 .pill { font-family: var(--mono); background: var(--bg-2); border: 1px solid var(--border); padding: 1px 7px; border-radius: 5px; font-size: 11px; }
 
+.alert { cursor: help; font-size: 13px; line-height: 1; }
+.alert.warn { color: var(--warn); }
+.alert.crit { color: var(--crit); }
+.badge.warn { background: rgba(255,170,34,0.15); color: var(--warn); }
+.badge.crit { background: rgba(255,48,80,0.15); color: var(--crit); }
+
 .empty { color: var(--text-2); padding: 24px; text-align: center; }
 .loading { color: var(--text-2); padding: 24px; }
 .error { color: var(--crit); padding: 16px; }

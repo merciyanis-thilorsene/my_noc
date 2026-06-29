@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDevices } from '../api';
-import { StatusDot, SfBadge, lossTone } from '../components/ui';
+import { AlertIcon, StatusDot, SfBadge, lossTone } from '../components/ui';
+import { linkHealth, rssiTone, snrTone } from '../lib/link';
 import {
   ago, int, num, pct,
 } from '../lib/format';
@@ -55,21 +56,30 @@ export default function Devices() {
               </tr>
             </thead>
             <tbody>
-              {items.map((r) => (
-                <tr key={r.dev_eui} className="clickable" onClick={() => navigate(`/devices/${r.dev_eui}`)}>
-                  <td><StatusDot lastSeen={r.last_seen_at} /></td>
-                  <td>{r.name ?? r.device_id}</td>
-                  <td className="mono">{r.dev_eui}</td>
-                  <td className="muted">{ago(r.last_seen_at)}</td>
-                  <td className="num">{int(r.uplinks_24h)}</td>
-                  <td className={`num ${lossTone(r.packet_loss_pct_24h) ?? ''}`}>{pct(r.packet_loss_pct_24h)}</td>
-                  <td className="num">{num(r.n_b_trans_avg_24h, 2)}</td>
-                  <td className="num">{num(r.avg_rssi_24h)}</td>
-                  <td className="num">{num(r.avg_snr_24h)}</td>
-                  <td><SfBadge sf={r.current_sf} /></td>
-                  <td className="num">{int(r.battery_pct)}</td>
-                </tr>
-              ))}
+              {items.map((r) => {
+                const health = linkHealth(r.avg_rssi_24h, r.avg_snr_24h, r.current_sf);
+                const rTone = rssiTone(r.avg_rssi_24h);
+                const sTone = snrTone(r.avg_snr_24h, r.current_sf);
+                return (
+                  <tr key={r.dev_eui} className="clickable" onClick={() => navigate(`/devices/${r.dev_eui}`)}>
+                    <td>
+                      <StatusDot lastSeen={r.last_seen_at} />
+                      {' '}
+                      <AlertIcon health={health} />
+                    </td>
+                    <td>{r.name ?? r.device_id}</td>
+                    <td className="mono">{r.dev_eui}</td>
+                    <td className="muted">{ago(r.last_seen_at)}</td>
+                    <td className="num">{int(r.uplinks_24h)}</td>
+                    <td className={`num ${lossTone(r.packet_loss_pct_24h) ?? ''}`}>{pct(r.packet_loss_pct_24h)}</td>
+                    <td className="num">{num(r.n_b_trans_avg_24h, 2)}</td>
+                    <td className={`num ${rTone === 'ok' ? '' : rTone}`}>{num(r.avg_rssi_24h)}</td>
+                    <td className={`num ${sTone === 'ok' ? '' : sTone}`}>{num(r.avg_snr_24h)}</td>
+                    <td><SfBadge sf={r.current_sf} /></td>
+                    <td className="num">{int(r.battery_pct)}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
