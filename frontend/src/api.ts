@@ -1,6 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 
-async function fetchJson<T>(url: string): Promise<T> {
+// All API paths are resolved against the app's base (e.g. `/monitor/`) so the tool works
+// when hosted under a Traefik path prefix as well as at the domain root.
+const BASE = import.meta.env.BASE_URL;
+
+async function fetchJson<T>(path: string): Promise<T> {
+  const url = `${BASE}${path.replace(/^\//, '')}`;
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`${res.status} ${res.statusText} — ${url}`);

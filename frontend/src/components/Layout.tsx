@@ -10,7 +10,7 @@ export default function Layout() {
           <NavLink to="/devices">Devices</NavLink>
         </nav>
         <div className="spacer" />
-        <a href="/api/health" target="_blank" rel="noreferrer" className="muted mono">health</a>
+        <a href={`${import.meta.env.BASE_URL}api/health`} target="_blank" rel="noreferrer" className="muted mono">health</a>
       </header>
       <main className="content">
         <Outlet />

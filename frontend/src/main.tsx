@@ -21,7 +21,7 @@ const router = createBrowserRouter([
       { path: 'devices/:devEui', element: <DeviceDetail /> },
     ],
   },
-]);
+], { basename: import.meta.env.BASE_URL.replace(/\/$/, '') });
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
