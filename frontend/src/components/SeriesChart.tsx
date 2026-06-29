@@ -39,11 +39,22 @@ export default function SeriesChart({
   const series = q.data?.series ?? [];
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const built = useMemo(() => build(series), [series]);
+  // Pin the x-axis to the API's reported window so the selected range is always reflected.
+  const xRange = useMemo<[number, number] | undefined>(() => (
+    q.data ? [Date.parse(q.data.from) / 1000, Date.parse(q.data.to) / 1000] : undefined
+  ), [q.data?.from, q.data?.to]);
 
   if (q.isLoading && !q.data) return <Box title={title}><div className="loading">Loading…</div></Box>;
   if (q.error) return <Box title={title}><div className="error">Failed to load</div></Box>;
   if (!series.length) return <Box title={title}><div className="empty">No data in range</div></Box>;
   return (
-    <UplotChart options={built.options} data={built.data} title={title} height={height} legend={legend} />
+    <UplotChart
+      options={built.options}
+      data={built.data}
+      title={title}
+      height={height}
+      legend={legend}
+      xRange={xRange}
+    />
   );
 }

@@ -10,6 +10,9 @@ interface Props {
   height?: number;
   title?: string;
   legend?: LegendItem[];
+  /** Pin the x-axis to [from, to] epoch seconds so the axis spans the selected time
+   *  range regardless of how sparse the data is (and avoids uPlot's single-point sprawl). */
+  xRange?: [number, number];
 }
 
 /**
@@ -17,7 +20,7 @@ interface Props {
  * and keeps width synced to its container via ResizeObserver.
  */
 export default function UplotChart({
-  options, data, height = 220, title, legend,
+  options, data, height = 220, title, legend, xRange,
 }: Props) {
   const hostRef = useRef<HTMLDivElement>(null);
   const plotRef = useRef<uPlot | null>(null);
@@ -43,8 +46,12 @@ export default function UplotChart({
   }, []);
 
   useEffect(() => {
-    plotRef.current?.setData(data);
-  }, [data]);
+    const u = plotRef.current;
+    if (!u) return;
+    // setData resets scales to the data extents; re-pin x to the requested window after.
+    u.setData(data);
+    if (xRange) u.setScale('x', { min: xRange[0], max: xRange[1] });
+  }, [data, xRange]);
 
   return (
     <div className="chart-box">
