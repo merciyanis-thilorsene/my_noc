@@ -67,9 +67,11 @@ export function tooltipPlugin(): uPlot.Plugin {
         });
         const rows = u.series.slice(1).map((s, i) => {
           if (s.show === false) return '';
-          const stroke = typeof s.stroke === 'string' ? s.stroke : '#888';
+          // uPlot wraps string strokes into functions internally; call to recover the color.
+          const raw = typeof s.stroke === 'function' ? s.stroke(u, i + 1) : s.stroke;
+          const color = typeof raw === 'string' ? raw : '#888';
           const v = (u.data[i + 1] as (number | null)[])[idx];
-          return `<div class="r"><i style="background:${stroke}"></i>${s.label ?? ''} <b>${fmtVal(v)}</b></div>`;
+          return `<div class="r"><i style="background:${color}"></i>${s.label ?? ''} <b>${fmtVal(v)}</b></div>`;
         }).join('');
         el.innerHTML = `<div class="t">${when}</div>${rows}`;
         el.style.display = 'block';
@@ -277,10 +279,10 @@ export function bandOptions(color: string, yLabel?: string): Omit<uPlot.Options,
       {},
       { label: 'avg', stroke: color, width: 1.8, points: { show: false } },
       {
-        label: 'min', stroke: `${color}55`, width: 1, points: { show: false },
+        label: 'min', stroke: `${color}aa`, width: 1, points: { show: false },
       },
       {
-        label: 'max', stroke: `${color}55`, width: 1, points: { show: false },
+        label: 'max', stroke: `${color}aa`, width: 1, points: { show: false },
       },
       {
         label: 'p95', stroke: CSS('--warn'), width: 1, dash: [4, 4], points: { show: false },
