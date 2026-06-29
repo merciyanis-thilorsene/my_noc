@@ -1,14 +1,15 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useDevice, useDeviceDownlinks, useDeviceJoins, useDeviceMetric, useDeviceUplinks, SeriesPoint,
+  useDevice, useDeviceDownlinks, useDeviceEvents, useDeviceJoins, useDeviceMetric, useDeviceUplinks, SeriesPoint,
 } from '../api';
 import {
   Kpi, TimeRange, Range, SfBadge, StatusBadge, lossTone,
 } from '../components/ui';
 import SeriesChart from '../components/SeriesChart';
 import {
-  aligned, barOptions, bandOptions, lineOptions, lossData, lossOptions, stackData, stackOptions, toUplotData,
+  aligned, barOptions, bandOptions, eventData, eventTimelineOptions, lineOptions, lossData, lossOptions,
+  stackData, stackOptions, toUplotData,
 } from '../lib/uplot';
 import {
   ago, CSS, freqMhz, int, num, pct, rate, shortTime,
@@ -119,12 +120,20 @@ function Meta({ label, value, mono }: { label: string; value: string; mono?: boo
 }
 
 function TrafficTab({ devEui, from }: { devEui: string; from: string }) {
+  const events = useDeviceEvents(devEui, from);
   const count = useDeviceMetric(devEui, 'uplink_count', from);
   const loss = useDeviceMetric(devEui, 'packet_loss', from);
   const inter = useDeviceMetric(devEui, 'inter_arrival', from);
   return (
-    <div className="charts two">
-      <SeriesChart q={count} title="Uplinks per bucket" build={(s) => ({ options: barOptions('uplinks', CSS('--accent')), data: toUplotData(s, ['count']) })} />
+    <>
+      <SeriesChart
+        q={events}
+        title="Uplink event timeline — one dot per received packet"
+        height={90}
+        build={(s) => ({ options: eventTimelineOptions(), data: eventData(s) })}
+      />
+      <div className="charts two" style={{ marginTop: 12 }}>
+        <SeriesChart q={count} title="Uplinks per bucket" build={(s) => ({ options: barOptions('uplinks', CSS('--accent')), data: toUplotData(s, ['count']) })} />
       <SeriesChart
         q={loss}
         title="Packet loss %"
@@ -142,8 +151,9 @@ function TrafficTab({ devEui, from }: { devEui: string; from: string }) {
           ], 's'),
           data: aligned(xs(s), col(s, 'avg'), col(s, 'p95')),
         })}
-      />
-    </div>
+        />
+      </div>
+    </>
   );
 }
 

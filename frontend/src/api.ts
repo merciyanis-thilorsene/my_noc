@@ -156,6 +156,14 @@ export function useFleetMetric(metric: string, from: string) {
   });
 }
 
+export function useDeviceEvents(devEui: string, from: string) {
+  return useQuery({
+    queryKey: ['events', devEui, from],
+    queryFn: () => fetchJson<SeriesResult>(`/api/devices/${devEui}/events?from=${from}`),
+    ...REFETCH,
+  });
+}
+
 export function useDeviceUplinks(devEui: string, from: string) {
   return useQuery({
     queryKey: ['uplinks', devEui, from],

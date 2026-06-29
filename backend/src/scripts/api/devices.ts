@@ -298,6 +298,35 @@ function joinsHandler(db: Db, request: FastifyRequest): unknown {
 }
 
 /**
+ * GET /api/devices/:dev_eui/events — every uplink's raw timestamp (+ f_cnt) in the range,
+ * unbucketed, for the event-timeline chart. Capped at 5000 most-recent points; `truncated`
+ * flags when the cap was hit. Shaped like a metric series so the frontend reuses its plumbing.
+ */
+function eventsHandler(db: Db, request: FastifyRequest): unknown {
+  const devEui = devEuiParam(request);
+  const query = request.query as { from?: string; to?: string };
+  const range = parseRange(query.from ?? '24h', query.to, Date.now());
+  const CAP = 5000;
+  const rows = db.prepare(`
+    SELECT timestamp, f_cnt FROM uplinks
+    WHERE dev_eui = @devEui AND timestamp >= @from AND timestamp < @to
+    ORDER BY timestamp DESC LIMIT @cap
+  `).all({
+    devEui, from: range.from, to: range.to, cap: CAP,
+  }) as { timestamp: string; f_cnt: number }[];
+
+  return {
+    metric: 'events',
+    bucket: 'raw',
+    from: range.from,
+    to: range.to,
+    truncated: rows.length === CAP,
+    // Return ascending for plotting; query took the most-recent CAP.
+    series: rows.reverse().map((r) => ({ t: r.timestamp, f_cnt: r.f_cnt })),
+  };
+}
+
+/**
  * GET /api/devices/:dev_eui/metrics — time-series for one device.
  */
 function deviceMetricsHandler(db: Db, request: FastifyRequest, reply: FastifyReply): unknown {
@@ -320,6 +349,7 @@ export default function registerDeviceRoutes(instance: FastifyInstance, db: Db):
   instance.get('/api/devices/:dev_eui/uplinks', (request) => uplinksHandler(db, request));
   instance.get('/api/devices/:dev_eui/downlinks', (request) => downlinksHandler(db, request));
   instance.get('/api/devices/:dev_eui/joins', (request) => joinsHandler(db, request));
+  instance.get('/api/devices/:dev_eui/events', (request) => eventsHandler(db, request));
   instance.get(
     '/api/devices/:dev_eui/metrics',
     (request, reply) => deviceMetricsHandler(db, request, reply),

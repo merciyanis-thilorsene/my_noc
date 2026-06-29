@@ -164,6 +164,74 @@ export function lossData(series: { t: string }[]): uPlot.AlignedData {
   );
 }
 
+/** Tooltip for the event timeline: shows the exact arrival time and f_cnt of an uplink. */
+function eventTooltip(): uPlot.Plugin {
+  let el: HTMLDivElement | null = null;
+  return {
+    hooks: {
+      init: (u: uPlot) => {
+        el = document.createElement('div');
+        el.className = 'u-tip';
+        el.style.display = 'none';
+        u.over.appendChild(el);
+        u.over.addEventListener('mouseleave', () => { if (el) el.style.display = 'none'; });
+      },
+      setCursor: (u: uPlot) => {
+        if (!el) return;
+        const { idx, left, top } = u.cursor;
+        if (idx === null || idx === undefined) { el.style.display = 'none'; return; }
+        const when = new Date((u.data[0] as number[])[idx] * 1000).toLocaleString(undefined, {
+          month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+        });
+        const fcnt = (u.data[2] as (number | null)[])[idx];
+        el.innerHTML = `<div class="t">${when}</div><div class="r"><i style="background:${CSS('--accent')}"></i>f_cnt <b>${fcnt ?? '—'}</b></div>`;
+        el.style.display = 'block';
+        el.style.left = `${left}px`;
+        el.style.top = `${top}px`;
+        const flip = (left ?? 0) > u.over.clientWidth * 0.6;
+        el.style.transform = flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)';
+      },
+    },
+  };
+}
+
+/**
+ * Event-timeline options: one point per uplink at its real timestamp, all on a single row
+ * (y is meaningless and hidden). Density shows the arrival pattern. Pair with {@link eventData}.
+ */
+export function eventTimelineOptions(): Omit<uPlot.Options, 'width' | 'height'> {
+  const c = CSS('--accent');
+  return {
+    scales: { x: { time: true }, y: { range: () => [0, 2] } },
+    axes: [
+      { stroke: axisStroke, grid: grid(), ticks: { stroke: CSS('--border'), width: 1 } },
+      { show: false },
+    ],
+    cursor,
+    legend: { show: false },
+    plugins: [eventTooltip()],
+    series: [
+      {},
+      {
+        label: 'uplink', stroke: c, width: 0, points: { show: true, size: 5, fill: c },
+      },
+      { label: 'f_cnt', scale: 'cnt', show: false },
+    ],
+  };
+}
+
+/** Aligned data for {@link eventTimelineOptions}: [t, constant-1, f_cnt]. */
+export function eventData(series: { t: string }[]): uPlot.AlignedData {
+  return aligned(
+    series.map((p) => Date.parse(p.t) / 1000),
+    series.map(() => 1),
+    series.map((p) => {
+      const v = (p as Record<string, unknown>).f_cnt;
+      return typeof v === 'number' ? v : null;
+    }),
+  );
+}
+
 export interface LineDef {
   key: string;
   label: string;
