@@ -8,7 +8,7 @@ import {
 } from '../components/ui';
 import SeriesChart from '../components/SeriesChart';
 import {
-  aligned, barOptions, bandOptions, lineOptions, stackData, stackOptions, toUplotData,
+  aligned, barOptions, bandOptions, lineOptions, lossData, lossOptions, stackData, stackOptions, toUplotData,
 } from '../lib/uplot';
 import {
   ago, CSS, freqMhz, int, num, pct, rate, shortTime,
@@ -128,10 +128,8 @@ function TrafficTab({ devEui, from }: { devEui: string; from: string }) {
       <SeriesChart
         q={loss}
         title="Packet loss %"
-        build={(s) => ({
-          options: lineOptions([{ key: 'loss', label: 'loss', color: CSS('--crit'), fill: `${CSS('--crit')}22` }], '%'),
-          data: aligned(xs(s), s.map((p) => (typeof p.loss_rate === 'number' ? p.loss_rate * 100 : null))),
-        })}
+        legend={[{ label: 'loss %', color: 'var(--crit)' }]}
+        build={(s) => ({ options: lossOptions(), data: lossData(s) })}
       />
       <SeriesChart
         q={inter}

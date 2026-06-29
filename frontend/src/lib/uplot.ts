@@ -75,9 +75,93 @@ export function tooltipPlugin(): uPlot.Plugin {
         el.style.display = 'block';
         el.style.left = `${left}px`;
         el.style.top = `${top}px`;
+        // Flip to the left of the cursor near the right edge so it doesn't clip.
+        const flip = (left ?? 0) > u.over.clientWidth * 0.6;
+        el.style.transform = flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)';
       },
     },
   };
+}
+
+/**
+ * Tooltip for the packet-loss chart: shows the bucket's expected/received/lost counts and
+ * the loss %. Reads aligned-data columns [t, lossPct, received, lost, expected].
+ */
+function lossTooltip(): uPlot.Plugin {
+  let el: HTMLDivElement | null = null;
+  const row = (color: string, label: string, val: string) => `<div class="r"><i style="background:${color}"></i>${label} <b>${val}</b></div>`;
+  const n = (v: number | null | undefined) => (v === null || v === undefined || Number.isNaN(v) ? '—' : String(v));
+  return {
+    hooks: {
+      init: (u: uPlot) => {
+        el = document.createElement('div');
+        el.className = 'u-tip';
+        el.style.display = 'none';
+        u.over.appendChild(el);
+        u.over.addEventListener('mouseleave', () => { if (el) el.style.display = 'none'; });
+      },
+      setCursor: (u: uPlot) => {
+        if (!el) return;
+        const { idx, left, top } = u.cursor;
+        if (idx === null || idx === undefined) { el.style.display = 'none'; return; }
+        const at = (col: number) => (u.data[col] as (number | null)[])[idx];
+        const when = new Date((u.data[0] as number[])[idx] * 1000).toLocaleString(undefined, {
+          month: 'short', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false,
+        });
+        const pct = at(1);
+        el.innerHTML = `<div class="t">${when}</div>`
+          + row(CSS('--text-2'), 'expected', n(at(4)))
+          + row(CSS('--ok'), 'received', n(at(2)))
+          + row(CSS('--crit'), 'lost', n(at(3)))
+          + row(CSS('--warn'), 'loss', pct === null || pct === undefined ? '—' : `${pct.toFixed(1)}%`);
+        el.style.display = 'block';
+        el.style.left = `${left}px`;
+        el.style.top = `${top}px`;
+        const flip = (left ?? 0) > u.over.clientWidth * 0.6;
+        el.style.transform = flip ? 'translate(calc(-100% - 12px), -50%)' : 'translate(12px, -50%)';
+      },
+    },
+  };
+}
+
+/**
+ * Packet-loss chart: a loss-% line (left axis) whose tooltip also surfaces the raw
+ * expected/received/lost counts. Pair with {@link lossData}.
+ */
+export function lossOptions(): Omit<uPlot.Options, 'width' | 'height'> {
+  const crit = CSS('--crit');
+  return {
+    scales: { x: { time: true } },
+    axes: axes('%'),
+    cursor,
+    legend: { show: false },
+    plugins: [lossTooltip()],
+    series: [
+      {},
+      {
+        label: 'loss %', stroke: crit, fill: `${crit}22`, width: 1.6, points: { show: false },
+      },
+      // Carried for the tooltip only (separate scale, not drawn).
+      { label: 'received', scale: 'cnt', show: false },
+      { label: 'lost', scale: 'cnt', show: false },
+      { label: 'expected', scale: 'cnt', show: false },
+    ],
+  };
+}
+
+/** Aligned data for {@link lossOptions}: [t, lossPct, received, lost, expected]. */
+export function lossData(series: { t: string }[]): uPlot.AlignedData {
+  const get = (p: { t: string }, k: string) => {
+    const v = (p as Record<string, unknown>)[k];
+    return typeof v === 'number' ? v : null;
+  };
+  return aligned(
+    series.map((p) => Date.parse(p.t) / 1000),
+    series.map((p) => { const r = get(p, 'loss_rate'); return r === null ? null : r * 100; }),
+    series.map((p) => get(p, 'received')),
+    series.map((p) => get(p, 'missing')),
+    series.map((p) => { const r = get(p, 'received'); const m = get(p, 'missing'); return r === null || m === null ? null : r + m; }),
+  );
 }
 
 export interface LineDef {

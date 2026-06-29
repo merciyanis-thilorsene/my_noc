@@ -8,7 +8,7 @@ import {
 } from '../components/ui';
 import SeriesChart from '../components/SeriesChart';
 import {
-  aligned, barOptions, lineOptions, stackData, stackOptions, toUplotData,
+  barOptions, lineOptions, lossData, lossOptions, stackData, stackOptions, toUplotData,
 } from '../lib/uplot';
 import {
   CSS, int, num, pct, rate, ago,
@@ -62,14 +62,8 @@ export default function Overview() {
         <SeriesChart
           q={loss}
           title="Fleet packet loss %"
-          build={(s) => ({
-            options: lineOptions([{ key: 'loss_rate', label: 'loss', color: CSS('--crit'), fill: `${CSS('--crit')}22` }], '%'),
-            // loss_rate is a fraction → render as %
-            data: aligned(s.map((p) => Date.parse(p.t) / 1000), s.map((p) => {
-              const v = (p as Record<string, unknown>).loss_rate;
-              return typeof v === 'number' ? v * 100 : null;
-            })),
-          })}
+          legend={[{ label: 'loss %', color: 'var(--crit)' }]}
+          build={(s) => ({ options: lossOptions(), data: lossData(s) })}
         />
         <SeriesChart
           q={active}
