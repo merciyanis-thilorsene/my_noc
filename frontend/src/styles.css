@@ -1,22 +1,23 @@
 :root {
-  --bg-0: #050910;
-  --bg-1: #0c1118;
-  --bg-2: #15202e;
-  --border: #1d2a3a;
-  --text-1: #dce4ec;
-  --text-2: #5a6e80;
-  --ok: #00e699;
-  --warn: #ffaa22;
-  --crit: #ff3050;
-  --accent: #3b9eff;
+  /* Elevated "slate" dark — off-black blue-grey surfaces, brighter text. */
+  --bg-0: #0e1320;
+  --bg-1: #161d2b;
+  --bg-2: #212a3b;
+  --border: #2b3650;
+  --text-1: #e7edf5;
+  --text-2: #8b9bb1;
+  --ok: #2ee6a6;
+  --warn: #ffb13d;
+  --crit: #ff5c72;
+  --accent: #5b9dff;
 
   /* SF7 (green) -> SF12 (red) */
-  --sf7: #00e699;
-  --sf8: #7ed957;
-  --sf9: #ffd23f;
-  --sf10: #ffaa22;
-  --sf11: #ff6b35;
-  --sf12: #ff3050;
+  --sf7: #2ee6a6;
+  --sf8: #8fdc63;
+  --sf9: #ffd24a;
+  --sf10: #ffb13d;
+  --sf11: #ff7d4d;
+  --sf12: #ff5c72;
 
   --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
   --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
@@ -161,7 +162,7 @@ input.search { min-width: 240px; }
 .u-tip {
   position: absolute; pointer-events: none; z-index: 20;
   transform: translate(12px, -50%);
-  background: #04101e; border: 1px solid var(--border); border-radius: 6px;
+  background: var(--bg-0); border: 1px solid var(--border); border-radius: 6px;
   padding: 6px 9px; font-family: var(--mono); font-size: 11px; color: var(--text-1);
   box-shadow: 0 4px 14px rgba(0,0,0,0.5); white-space: nowrap;
 }
