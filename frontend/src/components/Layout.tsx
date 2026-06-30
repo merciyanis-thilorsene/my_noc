@@ -14,8 +14,7 @@ export default function Layout() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <img src={`${import.meta.env.BASE_URL}sharingan.svg`} alt="" width={20} height={20} />
-          Sharin<span>gan</span>
+          <img src={`${import.meta.env.BASE_URL}sharingan.svg`} alt="Sharingan" width={24} height={24} />
         </div>
         <nav>
           <NavLink to="/" end>Overview</NavLink>
