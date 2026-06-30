@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <circle cx="50" cy="50" r="48" fill="#d11423" stroke="#160405" stroke-width="3"/>
+  <circle cx="50" cy="50" r="9.5" fill="#0b0405"/>
+  <g fill="#0b0405">
+    <g transform="rotate(0 50 50)"><g transform="translate(50,25)">
+      <circle r="7.5"/>
+      <path d="M6,-5 C20,-3 20,15 5,14 C10,7 9,2 6,-5 Z"/>
+    </g></g>
+    <g transform="rotate(120 50 50)"><g transform="translate(50,25)">
+      <circle r="7.5"/>
+      <path d="M6,-5 C20,-3 20,15 5,14 C10,7 9,2 6,-5 Z"/>
+    </g></g>
+    <g transform="rotate(240 50 50)"><g transform="translate(50,25)">
+      <circle r="7.5"/>
+      <path d="M6,-5 C20,-3 20,15 5,14 C10,7 9,2 6,-5 Z"/>
+    </g></g>
+  </g>
+</svg>

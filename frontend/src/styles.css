@@ -70,7 +70,7 @@ a:hover { text-decoration: underline; }
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 10;
 }
-.topbar .brand { font-weight: 600; letter-spacing: 0.02em; }
+.topbar .brand { font-weight: 600; letter-spacing: 0.02em; display: inline-flex; align-items: center; gap: 8px; }
 .topbar .brand span { color: var(--accent); }
 .topbar nav { display: flex; gap: 4px; }
 .topbar nav a {
