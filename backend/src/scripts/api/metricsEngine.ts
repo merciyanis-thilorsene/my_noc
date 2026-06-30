@@ -135,33 +135,47 @@ function fetchValues(
 
 /**
  * Computes packet loss per bucket from frame-counter gaps, ignoring session boundaries.
+ *
+ * f_cnt is a per-device sequence, so gaps must be computed PER DEVICE and then summed —
+ * mixing devices' counters (e.g. fleet-wide) would produce meaningless gaps. Within each
+ * bucket we group by dev_eui, sum each device's received + missing, and aggregate.
  */
 function packetLossSeries(db: Db, s: QueryScope): SeriesPoint[] {
   const rows = db.prepare(`
-    SELECT ${BUCKET_EPOCH} AS bucket_epoch, f_cnt
+    SELECT ${BUCKET_EPOCH} AS bucket_epoch, dev_eui, f_cnt
     FROM uplinks
     WHERE ${s.where}
-    ORDER BY bucket_epoch ASC, timestamp ASC, f_cnt ASC
-  `).all(s.params) as { bucket_epoch: number; f_cnt: number }[];
+    ORDER BY bucket_epoch ASC, dev_eui ASC, timestamp ASC, f_cnt ASC
+  `).all(s.params) as { bucket_epoch: number; dev_eui: string; f_cnt: number }[];
 
-  const byBucket = new Map<number, number[]>();
-  rows.forEach(({ bucket_epoch: epoch, f_cnt: fCnt }) => {
-    const list = byBucket.get(epoch);
-    if (list === undefined) byBucket.set(epoch, [fCnt]);
+  // bucket epoch -> dev_eui -> ordered f_cnts
+  const byBucket = new Map<number, Map<string, number[]>>();
+  rows.forEach(({ bucket_epoch: epoch, dev_eui: dev, f_cnt: fCnt }) => {
+    let devs = byBucket.get(epoch);
+    if (devs === undefined) { devs = new Map(); byBucket.set(epoch, devs); }
+    const list = devs.get(dev);
+    if (list === undefined) devs.set(dev, [fCnt]);
     else list.push(fCnt);
   });
 
-  return [...byBucket.entries()].sort((a, b) => a[0] - b[0]).map(([epoch, fcnts]) => {
+  return [...byBucket.entries()].sort((a, b) => a[0] - b[0]).map(([epoch, devs]) => {
+    let received = 0;
     let missing = 0;
-    for (let i = 1; i < fcnts.length; i += 1) {
-      const gap = fcnts[i] - fcnts[i - 1] - 1;
-      if (gap > 0) missing += gap;
-    }
-    const expected = fcnts.length + missing;
+    let pairs = 0; // consecutive same-device frames available to measure loss
+    [...devs.values()].forEach((fcnts) => {
+      received += fcnts.length;
+      pairs += Math.max(0, fcnts.length - 1);
+      for (let i = 1; i < fcnts.length; i += 1) {
+        const gap = fcnts[i] - fcnts[i - 1] - 1;
+        if (gap > 0) missing += gap;
+      }
+    });
+    const expected = received + missing;
     return {
       t: toIso(epoch * 1000),
-      loss_rate: fcnts.length < 2 ? null : missing / expected,
-      received: fcnts.length,
+      // Undefined when no device had two consecutive frames to compare in this bucket.
+      loss_rate: pairs === 0 ? null : missing / expected,
+      received,
       missing,
     };
   });
