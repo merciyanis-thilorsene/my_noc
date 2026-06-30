@@ -78,6 +78,22 @@ export default function DeviceDetail() {
           </span>
         ) : null}
         <div className="spacer" style={{ flex: 1 }} />
+        <a
+          className="pill"
+          href={`${import.meta.env.BASE_URL}api/devices/${devEui}/export?format=json&from=${range}`}
+          download
+          title="Download raw uplinks (JSON, full fidelity incl. per-gateway RF)"
+        >
+          ⤓ JSON
+        </a>
+        <a
+          className="pill"
+          href={`${import.meta.env.BASE_URL}api/devices/${devEui}/export?format=csv&from=${range}`}
+          download
+          title="Download raw uplinks (CSV, one row per uplink)"
+        >
+          ⤓ CSV
+        </a>
         <TimeRange value={range} onChange={setRange} />
       </div>
 
