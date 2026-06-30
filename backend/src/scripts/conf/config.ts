@@ -27,6 +27,10 @@ export interface Configuration {
   retentionDays: number;
   cleanupHourUtc: number;
   publicDir: string;
+  /** TTN/TTS cluster base URL for outbound downlinks, e.g. https://eu1.cloud.thethings.network. */
+  ttnBaseUrl: string | null;
+  /** API key (downlink-write rights) used to push downlinks; null disables downlinks. */
+  ttnDownlinkApiKey: string | null;
 }
 
 /**
@@ -75,6 +79,21 @@ function resolveWebhookSecret(): string {
 }
 
 /**
+ * Resolves an optional secret from `${name}` or a `${name}_FILE` path. Returns null if unset.
+ */
+function resolveOptionalSecret(name: string): string | null {
+  const direct = env(name);
+  if (direct !== undefined) {
+    return direct;
+  }
+  const file = env(`${name}_FILE`);
+  if (file !== undefined) {
+    return readFileSync(file, 'utf8').trim();
+  }
+  return null;
+}
+
+/**
  * Loads and validates configuration from the environment. Throws on invalid input.
  */
 export function loadConfiguration(): Configuration {
@@ -97,5 +116,7 @@ export function loadConfiguration(): Configuration {
     retentionDays: envInt('RETENTION_DAYS', 180),
     cleanupHourUtc,
     publicDir: envOr('PUBLIC_DIR', './public'),
+    ttnBaseUrl: (env('TTN_BASE_URL') ?? '').replace(/\/$/, '') || null,
+    ttnDownlinkApiKey: resolveOptionalSecret('TTN_DOWNLINK_API_KEY'),
   };
 }

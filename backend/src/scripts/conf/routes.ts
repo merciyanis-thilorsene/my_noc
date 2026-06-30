@@ -12,6 +12,7 @@ import registerHealthRoutes from 'scripts/api/health';
 import registerOverviewRoutes from 'scripts/api/overview';
 import registerDeviceRoutes from 'scripts/api/devices';
 import registerFleetMetricsRoutes from 'scripts/api/metrics';
+import registerDownlinkRoutes from 'scripts/api/downlink';
 
 /**
  * Wires every HTTP route onto the Fastify instance: TTS webhook ingest and the read API.
@@ -28,4 +29,5 @@ export default function declareRoutes(
   registerOverviewRoutes(instance, db);
   registerDeviceRoutes(instance, db);
   registerFleetMetricsRoutes(instance, db);
+  registerDownlinkRoutes(instance, db, config, logger);
 }

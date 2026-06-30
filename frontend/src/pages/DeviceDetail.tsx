@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useDevice, useDeviceDownlinks, useDeviceEvents, useDeviceJoins, useDeviceMetric, useDeviceUplinks, SeriesPoint,
+  useDevice, useDeviceDownlinks, useDeviceEvents, useDeviceJoins, useDeviceMetric, useDeviceUplinks,
+  sendBusylightDownlink, SeriesPoint,
 } from '../api';
 import {
   Kpi, TimeRange, Range, SfBadge, StatusBadge, lossTone,
@@ -48,7 +49,7 @@ const rfLegend = (color: string) => [
   { label: 'p95', color: 'var(--warn)' },
 ];
 
-const TABS = ['Traffic', 'RF Quality', 'Network', 'Downlinks'] as const;
+const TABS = ['Traffic', 'RF Quality', 'Network', 'Downlinks', 'Control'] as const;
 type Tab = typeof TABS[number];
 
 export default function DeviceDetail() {
@@ -129,6 +130,7 @@ export default function DeviceDetail() {
       {tab === 'RF Quality' ? <RfTab devEui={devEui} from={range} /> : null}
       {tab === 'Network' ? <NetworkTab devEui={devEui} from={range} /> : null}
       {tab === 'Downlinks' ? <DownlinksTab devEui={devEui} from={range} /> : null}
+      {tab === 'Control' ? <ControlTab devEui={devEui} /> : null}
 
       <Tables devEui={devEui} from={range} />
     </div>
@@ -241,6 +243,113 @@ function DownlinksTab({ devEui, from }: { devEui: string; from: string }) {
           data: aligned(xs(s), s.map((p) => (typeof p.success_rate === 'number' ? p.success_rate * 100 : null))),
         })}
       />
+    </div>
+  );
+}
+
+function hexToRgb(hex: string): { r: number; g: number; b: number } {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
+  if (m === null) return { r: 0, g: 0, b: 0 };
+  const n = parseInt(m[1], 16);
+  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+}
+
+const PRESETS = ['#ff0000', '#00e000', '#0066ff', '#ffaa00', '#ffffff'];
+type LightMode = 'solid' | 'blink' | 'off';
+
+/** Kuando Busylight downlink control (fPort 15, bytes [red, blue, green, ontime, offtime]). */
+function ControlTab({ devEui }: { devEui: string }) {
+  const [hex, setHex] = useState('#00e000');
+  const [mode, setMode] = useState<LightMode>('solid');
+  const [status, setStatus] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
+
+  const { r, g, b } = hexToRgb(hex);
+  const off = mode === 'off';
+
+  const send = () => {
+    setStatus({ kind: 'sending' });
+    const payload = off
+      ? {
+        red: 0, green: 0, blue: 0, ontime: 0, offtime: 0,
+      }
+      : {
+        red: r,
+        green: g,
+        blue: b,
+        ontime: mode === 'blink' ? 5 : 255,
+        offtime: mode === 'blink' ? 5 : 0,
+      };
+    sendBusylightDownlink(devEui, payload)
+      .then(() => setStatus({ kind: 'ok' }))
+      .catch((e: unknown) => setStatus({ kind: 'err', msg: e instanceof Error ? e.message : String(e) }));
+  };
+
+  return (
+    <div className="card" style={{ maxWidth: 540 }}>
+      <h2>Kuando Busylight — downlink control</h2>
+      <div style={{
+        display: 'flex', gap: 24, alignItems: 'center', marginBottom: 16,
+      }}
+      >
+        <div style={{
+          width: 64,
+          height: 64,
+          borderRadius: '50%',
+          background: off ? 'var(--bg-2)' : hex,
+          boxShadow: off ? 'none' : `0 0 18px ${hex}`,
+          border: '2px solid var(--border)',
+        }}
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            Color
+            <input type="color" value={hex} disabled={off} onChange={(e) => setHex(e.target.value)} />
+            <span className="mono">{hex}</span>
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {PRESETS.map((p) => (
+              <button
+                key={p}
+                type="button"
+                className="pill"
+                style={{ borderColor: p, cursor: 'pointer' }}
+                onClick={() => setHex(p)}
+                aria-label={`set ${p}`}
+              >
+                <span style={{
+                  display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: p,
+                }}
+                />
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="seg" style={{ marginBottom: 16 }}>
+        {(['solid', 'blink', 'off'] as const).map((m) => (
+          <button key={m} type="button" className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>{m}</button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <button
+          type="button"
+          className="theme-toggle"
+          onClick={send}
+          disabled={status.kind === 'sending'}
+          style={{ background: 'var(--accent)', color: '#0b0e14', fontWeight: 600 }}
+        >
+          {status.kind === 'sending' ? 'Sending…' : '⤓ Send downlink'}
+        </button>
+        {status.kind === 'ok' ? <span className="ok">Queued — applies on the device&apos;s next uplink.</span> : null}
+        {status.kind === 'err' ? <span className="crit">{status.msg}</span> : null}
+      </div>
+
+      <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
+        fPort 15 · bytes [red, blue, green, ontime, offtime]. Class-A: the light updates on its next uplink.
+        Sent downlinks appear in the Downlinks tab once TTN reports them.
+      </div>
     </div>
   );
 }

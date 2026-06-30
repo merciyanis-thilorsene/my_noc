@@ -157,6 +157,23 @@ export function useFleetMetric(metric: string, from: string) {
   });
 }
 
+export interface BusylightPayload {
+  red: number; green: number; blue: number; ontime: number; offtime: number;
+}
+
+/** Sends a Kuando Busylight downlink for a device; throws with the server message on failure. */
+export async function sendBusylightDownlink(devEui: string, payload: BusylightPayload): Promise<void> {
+  const res = await fetch(`${BASE}api/devices/${devEui}/downlink`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => ({})) as { message?: string; error?: string };
+    throw new Error(data.message ?? data.error ?? `${res.status} ${res.statusText}`);
+  }
+}
+
 export function useDeviceEvents(devEui: string, from: string) {
   return useQuery({
     queryKey: ['events', devEui, from],

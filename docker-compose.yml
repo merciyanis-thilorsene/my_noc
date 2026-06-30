@@ -13,6 +13,10 @@ services:
       - LOG_LEVEL=info
       - RETENTION_DAYS=180
       - CLEANUP_HOUR_UTC=3
+    # Credentials & URLs (TTN downlink, etc.) live in a gitignored .env — see .env.example.
+    env_file:
+      - path: .env
+        required: false
     secrets:
       - webhook_secret
     networks:
