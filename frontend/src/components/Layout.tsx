@@ -4,7 +4,7 @@ export default function Layout() {
   return (
     <div className="app">
       <header className="topbar">
-        <div className="brand">Lo<span>Ra</span>WAN Monitor</div>
+        <div className="brand">Merci<span>Yanis</span></div>
         <nav>
           <NavLink to="/" end>Overview</NavLink>
           <NavLink to="/devices">Devices</NavLink>
