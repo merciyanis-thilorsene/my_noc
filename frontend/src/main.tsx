@@ -11,6 +11,7 @@ import Layout from './components/Layout';
 import Overview from './pages/Overview';
 import Devices from './pages/Devices';
 import DeviceDetail from './pages/DeviceDetail';
+import Export from './pages/Export';
 
 const queryClient = new QueryClient();
 
@@ -22,6 +23,7 @@ const router = createBrowserRouter([
       { index: true, element: <Overview /> },
       { path: 'devices', element: <Devices /> },
       { path: 'devices/:devEui', element: <DeviceDetail /> },
+      { path: 'export', element: <Export /> },
     ],
   },
 ], { basename: import.meta.env.BASE_URL.replace(/\/$/, '') });

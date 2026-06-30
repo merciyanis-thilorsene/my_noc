@@ -17,6 +17,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Overview</NavLink>
           <NavLink to="/devices">Devices</NavLink>
+          <NavLink to="/export">Export</NavLink>
         </nav>
         <div className="spacer" />
         <button

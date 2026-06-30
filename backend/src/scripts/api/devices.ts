@@ -13,6 +13,7 @@ import {
   packetLossByDevice,
 } from 'scripts/api/deviceMetrics';
 import { buildSeries, SUPPORTED_METRICS } from 'scripts/api/metricsEngine';
+import { exportHeaders, exportUplinks } from 'scripts/api/exportUplinks';
 import { packetLoss } from 'scripts/lib/metrics';
 import { parseRange, resolveBucket, type TimeRange } from 'scripts/lib/time';
 import { normalizeEui } from 'scripts/webhooks/tts';
@@ -330,92 +331,16 @@ function eventsHandler(db: Db, request: FastifyRequest): unknown {
   };
 }
 
-const EXPORT_CAP = 50000;
-const CSV_COLUMNS = [
-  'timestamp', 'dev_eui', 'device_id', 'application_id', 'f_cnt', 'f_port', 'sf', 'bandwidth',
-  'coding_rate', 'data_rate_index', 'frequency', 'consumed_airtime_s', 'n_b_trans', 'adr',
-  'confirmed', 'best_rssi', 'best_snr', 'gateway_count', 'received_at', 'frm_payload', 'decoded_payload',
-];
-
-/** Escapes a value for a CSV cell (RFC 4180 quoting). */
-function csvCell(value: unknown): string {
-  if (value === null || value === undefined) return '';
-  let s: string;
-  if (typeof value === 'string') s = value;
-  else if (typeof value === 'number' || typeof value === 'boolean') s = String(value);
-  else s = JSON.stringify(value);
-  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
-}
-
-/** Parses a stored JSON string back to a value; returns the raw string on failure. */
-function parseJson(value: string | null): unknown {
-  if (value === null) return null;
-  try {
-    return JSON.parse(value);
-  } catch {
-    return value;
-  }
-}
-
 /**
  * GET /api/devices/:dev_eui/export — full raw uplink export for offline/agent analysis.
- * `format=json` (default) returns each uplink with parsed decoded_payload and nested
- * per-gateway RF; `format=csv` returns one flat row per uplink. Capped at 50000 rows.
+ * `format=json` (default) nests per-gateway RF + parsed payloads; `format=csv` is flat.
  */
 function exportHandler(db: Db, request: FastifyRequest, reply: FastifyReply): unknown {
   const devEui = devEuiParam(request);
   const query = request.query as { from?: string; to?: string; format?: string };
   const range = parseRange(query.from ?? '7d', query.to, Date.now());
-  const params = {
-    devEui, from: range.from, to: range.to, cap: EXPORT_CAP,
-  };
-  const uplinks = db.prepare(`
-    SELECT * FROM uplinks WHERE dev_eui = @devEui AND timestamp >= @from AND timestamp < @to
-    ORDER BY timestamp ASC LIMIT @cap
-  `).all(params) as ({ id: number } & Record<string, unknown>)[];
-
-  const stamp = range.to.replace(/[:]/g, '').replace(/\.\d+Z$/, 'Z');
-  const filename = `${devEui ?? 'device'}_uplinks_${stamp}`;
-
-  if (query.format === 'csv') {
-    const header = CSV_COLUMNS.join(',');
-    const rows = uplinks.map((u) => CSV_COLUMNS.map((c) => csvCell(u[c])).join(','));
-    return reply
-      .header('Content-Type', 'text/csv; charset=utf-8')
-      .header('Content-Disposition', `attachment; filename="${filename}.csv"`)
-      .send([header, ...rows].join('\n'));
-  }
-
-  const ids = uplinks.map((u) => u.id);
-  const gatewaysByUplink = new Map<number, unknown[]>();
-  if (ids.length > 0) {
-    const placeholders = ids.map(() => '?').join(',');
-    const gwRows = db.prepare(
-      `SELECT * FROM uplink_gateways WHERE uplink_id IN (${placeholders}) ORDER BY rssi DESC`,
-    ).all(...ids) as ({ uplink_id: number } & Record<string, unknown>)[];
-    gwRows.forEach((gw) => {
-      const list = gatewaysByUplink.get(gw.uplink_id);
-      if (list === undefined) gatewaysByUplink.set(gw.uplink_id, [gw]);
-      else list.push(gw);
-    });
-  }
-
-  const items = uplinks.map((u) => ({
-    ...u,
-    decoded_payload: parseJson(u.decoded_payload as string | null),
-    correlation_ids: parseJson(u.correlation_ids as string | null),
-    gateways: gatewaysByUplink.get(u.id) ?? [],
-  }));
-  return reply
-    .header('Content-Disposition', `attachment; filename="${filename}.json"`)
-    .send({
-      dev_eui: devEui,
-      from: range.from,
-      to: range.to,
-      count: items.length,
-      truncated: items.length === EXPORT_CAP,
-      uplinks: items,
-    });
+  const result = exportUplinks(db, devEui === null ? [] : [devEui], range, query.format);
+  return reply.headers(exportHeaders(result.isCsv, result.filename)).send(result.body);
 }
 
 /**
