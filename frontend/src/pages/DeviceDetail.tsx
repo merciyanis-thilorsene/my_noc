@@ -8,6 +8,7 @@ import {
   Kpi, TimeRange, Range, SfBadge, StatusBadge, lossTone,
 } from '../components/ui';
 import { linkHealth } from '../lib/link';
+import BusylightControls, { busylightPayload, LightMode } from '../components/BusylightControls';
 import SeriesChart from '../components/SeriesChart';
 import {
   aligned, barOptions, bandOptions, eventData, eventTimelineOptions, lineOptions, lossData, lossOptions,
@@ -247,91 +248,25 @@ function DownlinksTab({ devEui, from }: { devEui: string; from: string }) {
   );
 }
 
-function hexToRgb(hex: string): { r: number; g: number; b: number } {
-  const m = /^#?([0-9a-f]{6})$/i.exec(hex);
-  if (m === null) return { r: 0, g: 0, b: 0 };
-  const n = parseInt(m[1], 16);
-  return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-}
-
-const PRESETS = ['#ff0000', '#00e000', '#0066ff', '#ffaa00', '#ffffff'];
-type LightMode = 'solid' | 'blink' | 'off';
-
-/** Kuando Busylight downlink control (fPort 15, bytes [red, blue, green, ontime, offtime]). */
+/** Kuando Busylight downlink control for a single device. Multi-device lives on /control. */
 function ControlTab({ devEui }: { devEui: string }) {
   const [hex, setHex] = useState('#00e000');
   const [mode, setMode] = useState<LightMode>('solid');
   const [status, setStatus] = useState<{ kind: 'idle' | 'sending' | 'ok' | 'err'; msg?: string }>({ kind: 'idle' });
 
-  const { r, g, b } = hexToRgb(hex);
-  const off = mode === 'off';
-
   const send = () => {
     setStatus({ kind: 'sending' });
-    const payload = off
-      ? {
-        red: 0, green: 0, blue: 0, ontime: 0, offtime: 0,
-      }
-      : {
-        red: r,
-        green: g,
-        blue: b,
-        ontime: mode === 'blink' ? 5 : 255,
-        offtime: mode === 'blink' ? 5 : 0,
-      };
-    sendBusylightDownlink(devEui, payload)
+    sendBusylightDownlink(devEui, busylightPayload(hex, mode))
       .then(() => setStatus({ kind: 'ok' }))
       .catch((e: unknown) => setStatus({ kind: 'err', msg: e instanceof Error ? e.message : String(e) }));
   };
 
   return (
-    <div className="card" style={{ maxWidth: 540 }}>
+    <div className="card" style={{ maxWidth: 560 }}>
       <h2>Kuando Busylight — downlink control</h2>
-      <div style={{
-        display: 'flex', gap: 24, alignItems: 'center', marginBottom: 16,
-      }}
-      >
-        <div style={{
-          width: 64,
-          height: 64,
-          borderRadius: '50%',
-          background: off ? 'var(--bg-2)' : hex,
-          boxShadow: off ? 'none' : `0 0 18px ${hex}`,
-          border: '2px solid var(--border)',
-        }}
-        />
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            Color
-            <input type="color" value={hex} disabled={off} onChange={(e) => setHex(e.target.value)} />
-            <span className="mono">{hex}</span>
-          </label>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {PRESETS.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className="pill"
-                style={{ borderColor: p, cursor: 'pointer' }}
-                onClick={() => setHex(p)}
-                aria-label={`set ${p}`}
-              >
-                <span style={{
-                  display: 'inline-block', width: 12, height: 12, borderRadius: 2, background: p,
-                }}
-                />
-              </button>
-            ))}
-          </div>
-        </div>
+      <div style={{ marginBottom: 16 }}>
+        <BusylightControls hex={hex} mode={mode} onHex={setHex} onMode={setMode} />
       </div>
-
-      <div className="seg" style={{ marginBottom: 16 }}>
-        {(['solid', 'blink', 'off'] as const).map((m) => (
-          <button key={m} type="button" className={mode === m ? 'active' : ''} onClick={() => setMode(m)}>{m}</button>
-        ))}
-      </div>
-
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
           type="button"
@@ -345,10 +280,10 @@ function ControlTab({ devEui }: { devEui: string }) {
         {status.kind === 'ok' ? <span className="ok">Queued — applies on the device&apos;s next uplink.</span> : null}
         {status.kind === 'err' ? <span className="crit">{status.msg}</span> : null}
       </div>
-
       <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
         fPort 15 · bytes [red, blue, green, ontime, offtime]. Class-A: the light updates on its next uplink.
-        Sent downlinks appear in the Downlinks tab once TTN reports them.
+        Sent downlinks appear in the Downlinks tab once TTN reports them. Send to many devices from the
+        Control page.
       </div>
     </div>
   );

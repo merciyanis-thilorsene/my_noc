@@ -174,6 +174,29 @@ export async function sendBusylightDownlink(devEui: string, payload: BusylightPa
   }
 }
 
+export interface DownlinkManyResult {
+  sent: number;
+  failed: number;
+  results: { dev_eui: string; ok: boolean; message?: string }[];
+}
+
+/** Sends the same Busylight downlink to many devices; throws with the server message on failure. */
+export async function sendBusylightDownlinkMany(
+  devEuis: string[],
+  payload: BusylightPayload,
+): Promise<DownlinkManyResult> {
+  const res = await fetch(`${BASE}api/downlink`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ dev_euis: devEuis, ...payload }),
+  });
+  const data = await res.json().catch(() => ({})) as DownlinkManyResult & { message?: string; error?: string };
+  if (!res.ok) {
+    throw new Error(data.message ?? data.error ?? `${res.status} ${res.statusText}`);
+  }
+  return data;
+}
+
 export function useDeviceEvents(devEui: string, from: string) {
   return useQuery({
     queryKey: ['events', devEui, from],

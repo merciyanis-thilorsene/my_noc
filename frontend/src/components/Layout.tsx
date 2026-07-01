@@ -19,6 +19,7 @@ export default function Layout() {
         <nav>
           <NavLink to="/" end>Overview</NavLink>
           <NavLink to="/devices">Devices</NavLink>
+          <NavLink to="/control">Control</NavLink>
           <NavLink to="/export">Export</NavLink>
         </nav>
         <div className="spacer" />
