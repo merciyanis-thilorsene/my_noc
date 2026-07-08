@@ -11,6 +11,9 @@ import registerStatic from 'scripts/conf/static';
 import { openDatabase } from 'scripts/db/connection';
 import { createLogger, loggerOptions } from 'scripts/lib/logger';
 import startRetentionScheduler from 'scripts/lib/retention';
+import startWmcPoller from 'scripts/lib/wmcPoller';
+import WmcClient from 'scripts/lib/wmcClient';
+import Geocoder from 'scripts/lib/geocoder';
 
 /**
  * Application entry point: load config, open the database, wire routes, and start serving.
@@ -22,18 +25,33 @@ async function start(): Promise<void> {
   const db = openDatabase(config.databasePath, logger);
   const stopRetention = startRetentionScheduler(db, config, logger);
 
+  const wmcClient = (
+    config.wmcBaseUrl !== null
+    && config.wmcLogin !== null
+    && config.wmcPassword !== null
+  )
+    ? new WmcClient(logger, {
+      baseUrl: config.wmcBaseUrl,
+      login: config.wmcLogin,
+      password: config.wmcPassword,
+    })
+    : null;
+  const geocoder = config.geocoderUrl !== null ? new Geocoder(logger, config.geocoderUrl) : null;
+  const stopPoller = startWmcPoller(db, wmcClient, config, logger);
+
   const instance = fastify({
     // Webhook payloads with many gateways can be sizeable; keep a generous but bounded limit.
     bodyLimit: 262_144,
     logger: loggerOptions(config.logLevel),
   });
 
-  declareRoutes(instance, db, config, logger);
+  declareRoutes(instance, db, config, logger, { wmcClient, geocoder });
   await registerStatic(instance, config.publicDir, logger);
 
   const shutdown = (signal: string): void => {
     logger.info({ signal }, 'Shutting down.');
     stopRetention();
+    stopPoller();
     instance.close().then(() => {
       db.close();
       process.exit(0);

@@ -31,6 +31,20 @@ export interface Configuration {
   ttnBaseUrl: string | null;
   /** API key (downlink-write rights) used to push downlinks; null disables downlinks. */
   ttnDownlinkApiKey: string | null;
+  /** Kerlink WMC base URL (no trailing slash), e.g. https://wmc.wanesy.com. Null disables the gateway poller. */
+  wmcBaseUrl: string | null;
+  /** WMC login (HTTP Basic username for the token endpoint). Null disables the gateway poller. */
+  wmcLogin: string | null;
+  /** WMC password. Null disables the gateway poller. */
+  wmcPassword: string | null;
+  /** Seconds between WMC gateway polls. */
+  wmcPollIntervalSec: number;
+  /** Shared secret WMC sends in the webhook header for pushed gateway alerts; null disables it. */
+  wmcAlertsWebhookSecret: string | null;
+  /** Nominatim-compatible geocoder base URL for address → coordinates; null disables geocoding. */
+  geocoderUrl: string | null;
+  /** Map tile URL template served to the frontend Gateways map. */
+  mapTileUrl: string;
 }
 
 /**
@@ -118,5 +132,12 @@ export function loadConfiguration(): Configuration {
     publicDir: envOr('PUBLIC_DIR', './public'),
     ttnBaseUrl: (env('TTN_BASE_URL') ?? '').replace(/\/$/, '') || null,
     ttnDownlinkApiKey: resolveOptionalSecret('TTN_DOWNLINK_API_KEY'),
+    wmcBaseUrl: (env('WMC_BASE_URL') ?? '').replace(/\/$/, '') || null,
+    wmcLogin: env('WMC_LOGIN') ?? null,
+    wmcPassword: resolveOptionalSecret('WMC_PASSWORD'),
+    wmcPollIntervalSec: envInt('WMC_POLL_INTERVAL_SEC', 300),
+    wmcAlertsWebhookSecret: resolveOptionalSecret('WMC_ALERTS_WEBHOOK_SECRET'),
+    geocoderUrl: (env('GEOCODER_URL') ?? 'https://nominatim.openstreetmap.org').replace(/\/$/, '') || null,
+    mapTileUrl: envOr('MAP_TILE_URL', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
   };
 }
