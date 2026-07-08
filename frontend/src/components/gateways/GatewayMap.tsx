@@ -6,7 +6,26 @@ import { int } from '../../lib/format';
 import { L as T } from '../../lib/i18n';
 
 /**
- * Fleet map: one circle marker per located gateway, colored by effective status and sized
+ * Builds an antenna-badge icon for one gateway: a small circular marker (colored by effective
+ * status, mildly sized by 24h traffic) with a "cell_tower" glyph, plus a pulsing berry ring
+ * for silent gateways.
+ */
+function gatewayIcon(color: string, uplinks: number, silent: boolean): L.DivIcon {
+  const size = Math.round(Math.max(22, Math.min(32, 18 + Math.sqrt(Math.max(uplinks, 0)))));
+  const glyphSize = Math.round(size * 0.52);
+  return L.divIcon({
+    className: 'gw-marker-icon',
+    html: `<div class="gw-marker" style="background:${color}">`
+      + `<span class="icon" style="font-size:${glyphSize}px">cell_tower</span>`
+      + (silent ? '<span class="gw-marker-ring"></span>' : '')
+      + '</div>',
+    iconSize: [size, size],
+    iconAnchor: [size / 2, size / 2],
+  });
+}
+
+/**
+ * Fleet map: one antenna marker per located gateway, colored by effective status and sized
  * by 24h traffic; silent gateways get a pulsing berry ring. Unlocated gateways only appear
  * in the table below.
  */
@@ -51,18 +70,10 @@ export default function GatewayMap({ gateways, tileUrl, onOpen }: {
       located.push(pos);
       const meta = statusMeta(g);
       const silent = isSilent(g);
-      const radius = Math.max(7, Math.min(22, 5 + Math.sqrt(Math.max(g.uplinks_relayed, 1)) / 2));
-      L.circleMarker(pos, {
-        radius, color: '#fff', weight: 1.5, fillColor: meta.color, fillOpacity: 0.9,
-      })
+      L.marker(pos, { icon: gatewayIcon(meta.color, g.uplinks_relayed, silent) })
         .addTo(layer)
         .on('click', () => onOpen(g.gw_eui))
         .bindTooltip(`${gatewayName(g)} · ${int(g.uplinks_relayed)} ${T.gw.uplinks}`, { direction: 'top' });
-      if (silent) {
-        L.circleMarker(pos, {
-          radius: radius + 3, color: '#f44b83', weight: 2, fill: false, className: 'gw-silent-ring',
-        }).addTo(layer);
-      }
     });
     if (!fittedRef.current && located.length > 0) {
       fittedRef.current = true;

@@ -333,12 +333,29 @@ a.pill:hover { text-decoration: none; border-color: var(--text-3); color: var(--
 .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: var(--shadow-popover); }
 .leaflet-popup-content { margin: 12px 14px; }
 .leaflet-control-attribution { font-size: 9px; }
-@keyframes gw-pulse {
-  0% { stroke-opacity: 0.9; stroke-width: 2; }
-  70% { stroke-opacity: 0; stroke-width: 16; }
-  100% { stroke-opacity: 0; stroke-width: 16; }
+/* Antenna marker: a small icon badge instead of a plain filled circle. */
+.leaflet-div-icon.gw-marker-icon { background: transparent; border: none; }
+.gw-marker {
+  position: relative;
+  width: 100%; height: 100%;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  color: #fff;
 }
-.gw-silent-ring { animation: gw-pulse 1.8s var(--easing-out) infinite; }
+.gw-marker .icon { line-height: 1; }
+@keyframes gw-pulse-ring {
+  0% { transform: scale(0.85); opacity: 0.85; }
+  100% { transform: scale(2); opacity: 0; }
+}
+.gw-marker-ring {
+  position: absolute; inset: -6px;
+  border-radius: 50%;
+  border: 2px solid var(--berry);
+  animation: gw-pulse-ring 1.8s var(--easing-out) infinite;
+  pointer-events: none;
+}
 
 .rail { display: flex; flex-direction: column; gap: 16px; min-height: 440px; }
 .rail .watchlist { border-color: var(--berry-border); }
