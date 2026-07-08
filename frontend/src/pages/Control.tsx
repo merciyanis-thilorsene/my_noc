@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useDevices, sendBusylightDownlinkMany, DownlinkManyResult } from '../api';
-import { ago, int } from '../lib/format';
+import { ago } from '../lib/format';
 import BusylightControls, { busylightPayload, LightMode } from '../components/BusylightControls';
+import { L } from '../lib/i18n';
 
 export default function Control() {
   const [hex, setHex] = useState('#00e000');
@@ -50,18 +51,18 @@ export default function Control() {
   return (
     <div>
       <div className="page-head">
-        <h1>Busylight control</h1>
+        <h1>{L.ctl.title}</h1>
       </div>
 
       <div className="card" style={{ marginBottom: 12 }}>
-        <h2>Kuando Busylight — send to selected devices</h2>
+        <h2>{L.ctl.cardTitle}</h2>
         <div style={{ marginBottom: 16 }}>
           <BusylightControls hex={hex} mode={mode} onHex={setHex} onMode={setMode} />
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <button
             type="button"
-            className="theme-toggle"
+            className="btn small"
             onClick={send}
             disabled={sending || selected.size === 0}
             style={{
@@ -71,14 +72,14 @@ export default function Control() {
               cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
             }}
           >
-            {sending ? 'Sending…' : `⤓ Send to ${int(selected.size)} device${selected.size === 1 ? '' : 's'}`}
+            {sending ? L.ctl.sending : L.ctl.send(selected.size)}
           </button>
           {result ? (
             <span className={result.failed === 0 ? 'ok' : 'warn'}>
-              {`${int(result.sent)} sent`}
-              {result.failed > 0 ? `, ${int(result.failed)} failed` : ''}
+              {L.ctl.sent(result.sent)}
+              {result.failed > 0 ? L.ctl.failed(result.failed) : ''}
               {' '}
-              — applies on each device&apos;s next uplink.
+              {L.ctl.applies}
             </span>
           ) : null}
           {error ? <span className="crit">{error}</span> : null}
@@ -87,11 +88,11 @@ export default function Control() {
 
       <div className="card">
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 10 }}>
-          <button type="button" className="theme-toggle" onClick={selectAll}>
-            {allSelected ? 'Clear all' : 'Select all'}
+          <button type="button" className="btn small" onClick={selectAll}>
+            {allSelected ? L.common.clearAll : L.common.selectAll}
           </button>
-          <span className="muted">{`${int(selected.size)} selected`}</span>
-          <input className="search" placeholder="Filter devices…" value={search} onChange={(e) => setSearch(e.target.value)} />
+          <span className="muted">{L.common.selected(selected.size)}</span>
+          <input className="search" placeholder={L.common.filterDevices} value={search} onChange={(e) => setSearch(e.target.value)} />
         </div>
         <div className="table-wrap">
           <table>
@@ -100,10 +101,10 @@ export default function Control() {
                 <th style={{ width: 32 }}>
                   <input type="checkbox" checked={allSelected} onChange={selectAll} aria-label="select all" />
                 </th>
-                <th>Name</th>
+                <th>{L.common.name}</th>
                 <th>DevEUI</th>
-                <th>Last seen</th>
-                <th>Result</th>
+                <th>{L.common.seen}</th>
+                <th>{L.ctl.colResult}</th>
               </tr>
             </thead>
             <tbody>
@@ -124,8 +125,8 @@ export default function Control() {
                   <td>
                     {result && selected.has(d.dev_eui)
                       ? (failed.has(d.dev_eui)
-                        ? <span className="crit" title={failed.get(d.dev_eui) ?? ''}>failed</span>
-                        : <span className="ok">sent</span>)
+                        ? <span className="crit" title={failed.get(d.dev_eui) ?? ''}>{L.ctl.failedOne}</span>
+                        : <span className="ok">{L.ctl.sentOne}</span>)
                       : <span className="muted">—</span>}
                   </td>
                 </tr>
@@ -133,8 +134,8 @@ export default function Control() {
             </tbody>
           </table>
         </div>
-        {q.isLoading ? <div className="loading">Loading…</div> : null}
-        {!q.isLoading && filtered.length === 0 ? <div className="empty">No devices.</div> : null}
+        {q.isLoading ? <div className="loading">{L.common.loading}</div> : null}
+        {!q.isLoading && filtered.length === 0 ? <div className="empty">{L.dev.empty}</div> : null}
       </div>
     </div>
   );

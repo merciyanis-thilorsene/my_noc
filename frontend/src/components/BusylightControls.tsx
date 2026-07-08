@@ -1,4 +1,5 @@
 import { BusylightPayload } from '../api';
+import { L } from '../lib/i18n';
 
 export type LightMode = 'solid' | 'blink' | 'off';
 
@@ -54,7 +55,7 @@ export default function BusylightControls({
       />
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         <label className="muted" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          Color
+          {L.ctl.color}
           <input type="color" value={hex} disabled={off} onChange={(e) => onHex(e.target.value)} />
           <span className="mono">{hex}</span>
         </label>
@@ -78,7 +79,7 @@ export default function BusylightControls({
       </div>
       <div className="seg">
         {(['solid', 'blink', 'off'] as const).map((m) => (
-          <button key={m} type="button" className={mode === m ? 'active' : ''} onClick={() => onMode(m)}>{m}</button>
+          <button key={m} type="button" className={mode === m ? 'active' : ''} onClick={() => onMode(m)}>{{ solid: L.ctl.solid, blink: L.ctl.blink, off: L.ctl.off }[m]}</button>
         ))}
       </div>
     </div>

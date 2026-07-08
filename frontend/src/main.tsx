@@ -3,6 +3,7 @@ import ReactDOM from 'react-dom/client';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import 'uplot/dist/uPlot.min.css';
+import 'leaflet/dist/leaflet.css';
 import './styles.css';
 import { applyTheme, getTheme } from './lib/theme';
 
@@ -11,6 +12,7 @@ import Layout from './components/Layout';
 import Overview from './pages/Overview';
 import Devices from './pages/Devices';
 import DeviceDetail from './pages/DeviceDetail';
+import Gateways from './pages/Gateways';
 import Export from './pages/Export';
 import Control from './pages/Control';
 
@@ -22,6 +24,7 @@ const router = createBrowserRouter([
     element: <Layout />,
     children: [
       { index: true, element: <Overview /> },
+      { path: 'gateways', element: <Gateways /> },
       { path: 'devices', element: <Devices /> },
       { path: 'devices/:devEui', element: <DeviceDetail /> },
       { path: 'export', element: <Export /> },

@@ -17,6 +17,7 @@ import {
 import {
   ago, CSS, freqMhz, int, num, pct, rate, shortTime,
 } from '../lib/format';
+import { L } from '../lib/i18n';
 
 const KPI_WINDOW: Record<Range, string> = {
   '6h': '24h', '24h': '24h', '7d': '7d', '30d': '30d', '90d': '180d', '180d': '180d',
@@ -50,13 +51,19 @@ const rfLegend = (color: string) => [
   { label: 'p95', color: 'var(--warn)' },
 ];
 
-const TABS = ['Traffic', 'RF Quality', 'Network', 'Downlinks', 'Control'] as const;
-type Tab = typeof TABS[number];
+const TABS = [
+  { id: 'traffic', label: L.dd.tabTraffic },
+  { id: 'rf', label: L.dd.tabRf },
+  { id: 'network', label: L.dd.tabNetwork },
+  { id: 'downlinks', label: L.dd.tabDownlinks },
+  { id: 'control', label: L.dd.tabControl },
+] as const;
+type Tab = typeof TABS[number]['id'];
 
 export default function DeviceDetail() {
   const { devEui = '' } = useParams();
   const [range, setRange] = useState<Range>('24h');
-  const [tab, setTab] = useState<Tab>('Traffic');
+  const [tab, setTab] = useState<Tab>('traffic');
 
   const dev = useDevice(devEui);
   const m = dev.data?.metrics[KPI_WINDOW[range]] ?? {};
@@ -65,18 +72,18 @@ export default function DeviceDetail() {
   const m24 = dev.data?.metrics['24h'] ?? {};
   const health = linkHealth(m24.avg_rssi ?? null, m24.avg_snr ?? null, dev.data?.current_sf ?? null);
 
-  if (dev.isLoading) return <div className="loading">Loading device…</div>;
-  if (dev.error || !device) return <div className="error">Device not found.</div>;
+  if (dev.isLoading) return <div className="loading">{L.dd.loading}</div>;
+  if (dev.error || !device) return <div className="error">{L.dd.notFound}</div>;
 
   return (
     <div>
       <div className="page-head">
-        <Link to="/devices" className="muted">← Devices</Link>
+        <Link to="/devices" className="muted">{L.dd.back}</Link>
         <h1 style={{ marginLeft: 8 }}>{device.name ?? device.device_id}</h1>
         <StatusBadge lastSeen={device.last_seen_at} />
         {health.level !== 'ok' ? (
           <span className={`badge ${health.level}`} title={health.reasons.join(' · ')}>
-            ⚠ link {health.level === 'crit' ? 'critical' : 'at risk'}
+            {health.level === 'crit' ? L.dd.linkCrit : L.dd.linkWarn}
           </span>
         ) : null}
         <div className="spacer" style={{ flex: 1 }} />
@@ -84,7 +91,7 @@ export default function DeviceDetail() {
           className="pill"
           href={`${import.meta.env.BASE_URL}api/devices/${devEui}/export?format=json&from=${range}`}
           download
-          title="Download raw uplinks (JSON, full fidelity incl. per-gateway RF)"
+          title={L.dd.jsonTitle}
         >
           ⤓ JSON
         </a>
@@ -92,7 +99,7 @@ export default function DeviceDetail() {
           className="pill"
           href={`${import.meta.env.BASE_URL}api/devices/${devEui}/export?format=csv&from=${range}`}
           download
-          title="Download raw uplinks (CSV, one row per uplink)"
+          title={L.dd.csvTitle}
         >
           ⤓ CSV
         </a>
@@ -102,36 +109,36 @@ export default function DeviceDetail() {
       <div className="card" style={{ marginBottom: 16 }}>
         <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap', fontSize: 12 }}>
           <Meta label="DevEUI" value={device.dev_eui} mono />
-          <Meta label="Device ID" value={device.device_id} mono />
+          <Meta label={L.dd.mDeviceId} value={device.device_id} mono />
           <Meta label="Application" value={device.application_id} mono />
           <Meta label="LoRaWAN" value={device.lorawan_version ?? '—'} />
-          <Meta label="First seen" value={ago(device.first_seen_at)} />
-          <Meta label="Last seen" value={ago(device.last_seen_at)} />
+          <Meta label={L.dd.mFirstSeen} value={ago(device.first_seen_at)} />
+          <Meta label={L.dd.mLastSeen} value={ago(device.last_seen_at)} />
         </div>
       </div>
 
       <div className="kpis">
-        <Kpi label={`Uplinks (${range})`} value={int(m.uplinks)} />
-        <Kpi label="Packet loss" value={pct(m.packet_loss_pct)} tone={lossTone(m.packet_loss_pct ?? null)} />
-        <Kpi label="NbTrans avg" value={num(m.n_b_trans_avg, 2)} />
-        <Kpi label="Avg RSSI" value={num(m.avg_rssi)} sub="dBm" />
-        <Kpi label="Avg SNR" value={num(m.avg_snr)} sub="dB" />
-        <Kpi label="Gateways/uplink" value={num(m.avg_gateway_count)} />
-        <Kpi label="Downlink success" value={rate(m.downlink_success_rate)} sub={`${int(m.downlinks_total)} total`} />
-        <Kpi label="Airtime" value={num(m.total_airtime_s, 1)} sub="s" />
+        <Kpi label={L.dd.kUplinks(range)} value={int(m.uplinks)} />
+        <Kpi label={L.dd.kLoss} value={pct(m.packet_loss_pct)} tone={lossTone(m.packet_loss_pct ?? null)} />
+        <Kpi label={L.dd.kNbTrans} value={num(m.n_b_trans_avg, 2)} />
+        <Kpi label={L.dd.kRssi} value={num(m.avg_rssi)} sub="dBm" />
+        <Kpi label={L.dd.kSnr} value={num(m.avg_snr)} sub="dB" />
+        <Kpi label={L.dd.kGw} value={num(m.avg_gateway_count)} />
+        <Kpi label={L.dd.kDlSuccess} value={rate(m.downlink_success_rate)} sub={L.dd.kDlTotal(int(m.downlinks_total))} />
+        <Kpi label={L.dd.kAirtime} value={num(m.total_airtime_s, 1)} sub="s" />
       </div>
 
       <div className="tabs">
         {TABS.map((t) => (
-          <button key={t} type="button" className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{t}</button>
+          <button key={t.id} type="button" className={tab === t.id ? 'active' : ''} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
 
-      {tab === 'Traffic' ? <TrafficTab devEui={devEui} from={range} /> : null}
-      {tab === 'RF Quality' ? <RfTab devEui={devEui} from={range} /> : null}
-      {tab === 'Network' ? <NetworkTab devEui={devEui} from={range} /> : null}
-      {tab === 'Downlinks' ? <DownlinksTab devEui={devEui} from={range} /> : null}
-      {tab === 'Control' ? <ControlTab devEui={devEui} /> : null}
+      {tab === 'traffic' ? <TrafficTab devEui={devEui} from={range} /> : null}
+      {tab === 'rf' ? <RfTab devEui={devEui} from={range} /> : null}
+      {tab === 'network' ? <NetworkTab devEui={devEui} from={range} /> : null}
+      {tab === 'downlinks' ? <DownlinksTab devEui={devEui} from={range} /> : null}
+      {tab === 'control' ? <ControlTab devEui={devEui} /> : null}
 
       <Tables devEui={devEui} from={range} />
     </div>
@@ -156,21 +163,21 @@ function TrafficTab({ devEui, from }: { devEui: string; from: string }) {
     <>
       <SeriesChart
         q={events}
-        title="Uplink event timeline — one dot per received packet"
+        title={L.dd.cTimeline}
         height={90}
         build={(s) => ({ options: eventTimelineOptions(), data: eventData(s) })}
       />
       <div className="charts two" style={{ marginTop: 12 }}>
-        <SeriesChart q={count} title="Uplinks per bucket" build={(s) => ({ options: barOptions('uplinks', CSS('--accent')), data: toUplotData(s, ['count']) })} />
+        <SeriesChart q={count} title={L.dd.cUplinks} build={(s) => ({ options: barOptions('uplinks', CSS('--accent')), data: toUplotData(s, ['count']) })} />
       <SeriesChart
         q={loss}
-        title="Packet loss %"
-        legend={[{ label: 'loss %', color: 'var(--crit)' }]}
+        title={L.dd.cLoss}
+        legend={[{ label: L.dd.cLossSeries, color: 'var(--crit)' }]}
         build={(s) => ({ options: lossOptions(), data: lossData(s) })}
       />
       <SeriesChart
         q={inter}
-        title="Inter-arrival time (s)"
+        title={L.dd.cInterArrival}
         legend={[{ label: 'avg', color: 'var(--accent)' }, { label: 'p95', color: 'var(--warn)' }]}
         build={(s) => ({
           options: lineOptions([
@@ -195,7 +202,7 @@ function RfTab({ devEui, from }: { devEui: string; from: string }) {
       <SeriesChart q={snr} title="SNR" legend={rfLegend('var(--ok)')} build={(s) => ({ options: bandOptions(CSS('--ok'), 'dB'), data: aligned(xs(s), col(s, 'avg'), col(s, 'min'), col(s, 'max'), col(s, 'p95')) })} />
       <SeriesChart
         q={gw}
-        title="Gateways per uplink"
+        title={L.dd.cGwPerUplink}
         legend={[{ label: 'avg', color: 'var(--sf8)' }, { label: 'min–max', color: 'var(--sf8)' }]}
         build={(s) => ({
           options: bandOptions(CSS('--sf8')),
@@ -212,10 +219,10 @@ function NetworkTab({ devEui, from }: { devEui: string; from: string }) {
   const air = useDeviceMetric(devEui, 'airtime', from);
   return (
     <div className="charts two">
-      <SeriesChart q={sf} title="Spreading factor distribution" legend={SF_DEFS.map((x) => ({ label: x.label, color: x.color }))} build={(s) => ({ options: stackOptions(SF_DEFS), data: stackData(s, SF_DEFS.map((x) => x.key)) })} />
+      <SeriesChart q={sf} title={L.dd.cSfDist} legend={SF_DEFS.map((x) => ({ label: x.label, color: x.color }))} build={(s) => ({ options: stackOptions(SF_DEFS), data: stackData(s, SF_DEFS.map((x) => x.key)) })} />
       <SeriesChart
         q={nb}
-        title="NbTrans average (thresholds 1.5 / 2.5)"
+        title={L.dd.cNbTrans}
         legend={[{ label: 'NbTrans', color: 'var(--accent)' }, { label: '1.5', color: 'var(--warn)' }, { label: '2.5', color: 'var(--crit)' }]}
         build={(s) => ({
           options: lineOptions([
@@ -226,7 +233,7 @@ function NetworkTab({ devEui, from }: { devEui: string; from: string }) {
           data: aligned(xs(s), col(s, 'avg'), constLine(s, 1.5), constLine(s, 2.5)),
         })}
       />
-      <SeriesChart q={air} title="Airtime per bucket (s)" build={(s) => ({ options: barOptions('airtime', CSS('--sf9'), 's'), data: toUplotData(s, ['total']) })} />
+      <SeriesChart q={air} title={L.dd.cAirtime} build={(s) => ({ options: barOptions('airtime', CSS('--sf9'), 's'), data: toUplotData(s, ['total']) })} />
     </div>
   );
 }
@@ -235,12 +242,12 @@ function DownlinksTab({ devEui, from }: { devEui: string; from: string }) {
   const dl = useDeviceMetric(devEui, 'downlink_success', from);
   return (
     <div className="charts two">
-      <SeriesChart q={dl} title="Downlink lifecycle" legend={DL_DEFS.map((x) => ({ label: x.label, color: x.color }))} build={(s) => ({ options: stackOptions(DL_DEFS), data: stackData(s, DL_DEFS.map((x) => x.key)) })} />
+      <SeriesChart q={dl} title={L.dd.cDlLifecycle} legend={DL_DEFS.map((x) => ({ label: x.label, color: x.color }))} build={(s) => ({ options: stackOptions(DL_DEFS), data: stackData(s, DL_DEFS.map((x) => x.key)) })} />
       <SeriesChart
         q={dl}
-        title="Downlink success rate"
+        title={L.dd.cDlRate}
         build={(s) => ({
-          options: lineOptions([{ key: 'sr', label: 'success', color: CSS('--ok'), fill: `${CSS('--ok')}22` }], '%'),
+          options: lineOptions([{ key: 'sr', label: L.dd.cDlRateSeries, color: CSS('--ok'), fill: `${CSS('--ok')}22` }], '%'),
           data: aligned(xs(s), s.map((p) => (typeof p.success_rate === 'number' ? p.success_rate * 100 : null))),
         })}
       />
@@ -263,27 +270,26 @@ function ControlTab({ devEui }: { devEui: string }) {
 
   return (
     <div className="card" style={{ maxWidth: 560 }}>
-      <h2>Kuando Busylight — downlink control</h2>
+      <h2>{L.dd.ctlTitle}</h2>
       <div style={{ marginBottom: 16 }}>
         <BusylightControls hex={hex} mode={mode} onHex={setHex} onMode={setMode} />
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <button
           type="button"
-          className="theme-toggle"
+          className="btn small"
           onClick={send}
           disabled={status.kind === 'sending'}
           style={{ background: 'var(--accent)', color: '#0b0e14', fontWeight: 600 }}
         >
-          {status.kind === 'sending' ? 'Sending…' : '⤓ Send downlink'}
+          {status.kind === 'sending' ? L.dd.ctlSending : L.dd.ctlSend}
         </button>
-        {status.kind === 'ok' ? <span className="ok">Queued — applies on the device&apos;s next uplink.</span> : null}
+        {status.kind === 'ok' ? <span className="ok">{L.dd.ctlQueued}</span> : null}
         {status.kind === 'err' ? <span className="crit">{status.msg}</span> : null}
       </div>
       <div className="muted" style={{ fontSize: 11, marginTop: 12 }}>
-        fPort 15 · bytes [red, blue, green, ontime, offtime]. Class-A: the light updates on its next uplink.
-        Sent downlinks appear in the Downlinks tab once TTN reports them. Send to many devices from the
-        Control page.
+        {L.dd.ctlHint1}
+        {L.dd.ctlHint2}
       </div>
     </div>
   );
@@ -296,14 +302,14 @@ function Tables({ devEui, from }: { devEui: string; from: string }) {
   return (
     <div className="grid" style={{ marginTop: 16 }}>
       <div className="card">
-        <h2>Recent uplinks</h2>
+        <h2>{L.dd.tUplinks}</h2>
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Time</th><th className="num">f_cnt</th><th>SF</th><th className="num">Freq</th>
+                <th>{L.dd.tTime}</th><th className="num">f_cnt</th><th>SF</th><th className="num">Freq</th>
                 <th className="num">RSSI</th><th className="num">SNR</th><th className="num">GW</th>
-                <th className="num">Air s</th>
+                <th className="num">{L.dd.tAir}</th>
               </tr>
             </thead>
             <tbody>
@@ -319,17 +325,17 @@ function Tables({ devEui, from }: { devEui: string; from: string }) {
                   <td className="num">{num(u.consumed_airtime_s, 3)}</td>
                 </tr>
               ))}
-              {(ups.data?.items.length ?? 0) === 0 ? <tr><td colSpan={8} className="empty">No uplinks in range</td></tr> : null}
+              {(ups.data?.items.length ?? 0) === 0 ? <tr><td colSpan={8} className="empty">{L.dd.tUplinksEmpty}</td></tr> : null}
             </tbody>
           </table>
         </div>
       </div>
 
       <div className="card">
-        <h2>Recent downlinks</h2>
+        <h2>{L.dd.tDownlinks}</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>First seen</th><th>Lifecycle</th></tr></thead>
+            <thead><tr><th>{L.dd.tFirstSeen}</th><th>{L.dd.tLifecycle}</th></tr></thead>
             <tbody>
               {(dls.data?.items ?? []).map((g) => (
                 <tr key={g.correlation_id}>
@@ -337,22 +343,22 @@ function Tables({ devEui, from }: { devEui: string; from: string }) {
                   <td className="mono">{g.events.map((e) => e.event_type).join(' → ')}</td>
                 </tr>
               ))}
-              {(dls.data?.items.length ?? 0) === 0 ? <tr><td colSpan={2} className="empty">No downlinks in range</td></tr> : null}
+              {(dls.data?.items.length ?? 0) === 0 ? <tr><td colSpan={2} className="empty">{L.dd.tDownlinksEmpty}</td></tr> : null}
             </tbody>
           </table>
         </div>
       </div>
 
       <div className="card">
-        <h2>Joins</h2>
+        <h2>{L.dd.tJoins}</h2>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Time</th><th>DevAddr</th></tr></thead>
+            <thead><tr><th>{L.dd.tTime}</th><th>DevAddr</th></tr></thead>
             <tbody>
               {(joins.data?.items ?? []).map((j) => (
                 <tr key={j.id}><td className="muted">{shortTime(j.timestamp)}</td><td className="mono">{j.dev_addr ?? '—'}</td></tr>
               ))}
-              {(joins.data?.items.length ?? 0) === 0 ? <tr><td colSpan={2} className="empty">No joins in range</td></tr> : null}
+              {(joins.data?.items.length ?? 0) === 0 ? <tr><td colSpan={2} className="empty">{L.dd.tJoinsEmpty}</td></tr> : null}
             </tbody>
           </table>
         </div>

@@ -14,11 +14,14 @@ RUN yarn run build
 
 # ── Stage 2: frontend build ───────────────────────────────────────────────────
 FROM node:22-bookworm AS frontend-build
+# Path prefix the SPA is served under. Defaults to the prototypes value (/monitor/, behind
+# Traefik). Override with `--build-arg APP_BASE=/` for a root-hosted local run with no proxy.
+ARG APP_BASE=/monitor/
 WORKDIR /fe
 COPY frontend/package.json frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile --ignore-engines
 COPY frontend/ ./
-RUN yarn build
+RUN node_modules/.bin/tsc --noEmit && node_modules/.bin/vite build --base "$APP_BASE"
 
 # ── Stage 3: production dependencies ──────────────────────────────────────────
 FROM node:22-bookworm AS deps

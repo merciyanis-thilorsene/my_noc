@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useDevices } from '../api';
 import { TimeRange, Range } from '../components/ui';
 import { ago, int } from '../lib/format';
+import { L } from '../lib/i18n';
 
 type Format = 'json' | 'csv';
 
@@ -53,7 +54,7 @@ export default function Export() {
   return (
     <div>
       <div className="page-head">
-        <h1>Export uplinks</h1>
+        <h1>{L.exp.title}</h1>
         <div className="spacer" style={{ flex: 1 }} />
         <div className="seg">
           <button type="button" className={format === 'json' ? 'active' : ''} onClick={() => setFormat('json')}>JSON</button>
@@ -64,19 +65,19 @@ export default function Export() {
 
       <div className="card" style={{ marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
-          <button type="button" className="theme-toggle" onClick={selectAll}>
-            {allFilteredSelected ? 'Clear all' : 'Select all'}
+          <button type="button" className="btn small" onClick={selectAll}>
+            {allFilteredSelected ? L.common.clearAll : L.common.selectAll}
           </button>
-          <span className="muted">{`${int(selected.size)} selected`}</span>
+          <span className="muted">{L.common.selected(selected.size)}</span>
           <input
             className="search"
-            placeholder="Filter devices…"
+            placeholder={L.common.filterDevices}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
           <div className="spacer" style={{ flex: 1 }} />
           <span className="muted" style={{ fontSize: 11 }}>
-            {`${format.toUpperCase()} · ${range} · max 50k uplinks`}
+            {L.exp.summary(format.toUpperCase(), range)}
           </span>
           <button
             type="button"
@@ -93,7 +94,7 @@ export default function Export() {
               cursor: selected.size === 0 ? 'not-allowed' : 'pointer',
             }}
           >
-            ⤓ Export {selected.size > 0 ? `(${int(selected.size)})` : ''}
+            {L.exp.download} {selected.size > 0 ? `(${int(selected.size)})` : ''}
           </button>
         </div>
       </div>
@@ -106,11 +107,11 @@ export default function Export() {
                 <th style={{ width: 32 }}>
                   <input type="checkbox" checked={allFilteredSelected} onChange={selectAll} aria-label="select all" />
                 </th>
-                <th>Name</th>
+                <th>{L.common.name}</th>
                 <th>DevEUI</th>
-                <th>Device ID</th>
-                <th className="num">Uplinks 24h</th>
-                <th>Last seen</th>
+                <th>{L.exp.colDeviceId}</th>
+                <th className="num">{L.dev.colUplinks}</th>
+                <th>{L.common.seen}</th>
               </tr>
             </thead>
             <tbody>
@@ -135,8 +136,8 @@ export default function Export() {
             </tbody>
           </table>
         </div>
-        {q.isLoading ? <div className="loading">Loading…</div> : null}
-        {!q.isLoading && filtered.length === 0 ? <div className="empty">No devices.</div> : null}
+        {q.isLoading ? <div className="loading">{L.common.loading}</div> : null}
+        {!q.isLoading && filtered.length === 0 ? <div className="empty">{L.dev.empty}</div> : null}
       </div>
     </div>
   );

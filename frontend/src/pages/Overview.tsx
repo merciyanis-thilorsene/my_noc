@@ -13,6 +13,7 @@ import {
 import {
   CSS, int, num, pct, rate, ago,
 } from '../lib/format';
+import { L } from '../lib/i18n';
 
 const SF_DEFS = [
   { key: 'sf7', label: 'SF7', color: 'var(--sf7)' },
@@ -39,56 +40,56 @@ export default function Overview() {
   return (
     <div>
       <div className="page-head">
-        <h1>Fleet Overview</h1>
+        <h1>{L.ov.title}</h1>
         <div className="spacer" style={{ flex: 1 }} />
         <TimeRange value={range} onChange={setRange} />
       </div>
 
       <div className="kpis">
-        <Kpi label="Devices" value={int(d?.total_devices)} sub={`${int(d?.active_devices_24h)} active · ${int(d?.silent_devices_24h)} silent (24h)`} />
-        <Kpi label="Uplinks 24h" value={int(d?.total_uplinks_24h)} />
-        <Kpi label="Downlinks 24h" value={int(d?.total_downlinks_24h)} sub={`success ${rate(d?.downlink_success_rate_24h)}`} />
-        <Kpi label="Avg packet loss" value={pct(d?.avg_packet_loss_pct)} tone={lossTone(d?.avg_packet_loss_pct ?? null)} />
-        <Kpi label="Avg RSSI" value={num(d?.avg_rssi)} sub="dBm" />
-        <Kpi label="Avg SNR" value={num(d?.avg_snr)} sub="dB" />
+        <Kpi label={L.ov.kDevices} value={int(d?.total_devices)} sub={L.ov.kDevicesSub(d?.active_devices_24h ?? 0, d?.silent_devices_24h ?? 0)} />
+        <Kpi label={L.ov.kUplinks} value={int(d?.total_uplinks_24h)} />
+        <Kpi label={L.ov.kDownlinks} value={int(d?.total_downlinks_24h)} sub={L.ov.kDlSub(rate(d?.downlink_success_rate_24h))} />
+        <Kpi label={L.ov.kLoss} value={pct(d?.avg_packet_loss_pct)} tone={lossTone(d?.avg_packet_loss_pct ?? null)} />
+        <Kpi label={L.ov.kRssi} value={num(d?.avg_rssi)} sub="dBm" />
+        <Kpi label={L.ov.kSnr} value={num(d?.avg_snr)} sub="dB" />
       </div>
 
       <div className="charts two">
         <SeriesChart
           q={traffic}
-          title="Uplinks per bucket"
+          title={L.ov.cUplinks}
           build={(s) => ({ options: barOptions('uplinks', CSS('--accent')), data: toUplotData(s, ['count']) })}
         />
         <SeriesChart
           q={loss}
-          title="Fleet packet loss %"
-          legend={[{ label: 'loss %', color: 'var(--crit)' }]}
+          title={L.ov.cLoss}
+          legend={[{ label: L.ov.cLossSeries, color: 'var(--crit)' }]}
           build={(s) => ({ options: lossOptions(), data: lossData(s) })}
         />
         <SeriesChart
           q={active}
-          title="Active devices"
-          build={(s) => ({ options: lineOptions([{ key: 'count', label: 'devices', color: CSS('--ok'), fill: `${CSS('--ok')}22` }]), data: toUplotData(s, ['count']) })}
+          title={L.ov.cActive}
+          build={(s) => ({ options: lineOptions([{ key: 'count', label: L.ov.cActiveSeries, color: CSS('--ok'), fill: `${CSS('--ok')}22` }]), data: toUplotData(s, ['count']) })}
         />
         <SeriesChart
           q={sf}
-          title="SF distribution"
+          title={L.ov.cSf}
           legend={SF_DEFS.map((x) => ({ label: x.label, color: x.color }))}
           build={(s) => ({ options: stackOptions(SF_DEFS), data: stackData(s, SF_DEFS.map((x) => x.key)) })}
         />
       </div>
 
       <div className="charts two" style={{ marginTop: 12 }}>
-        <WorstTable title="Worst packet loss" rows={worstLoss.data?.items ?? []} kind="loss" />
-        <WorstTable title="Weakest RSSI" rows={worstRssi.data?.items ?? []} kind="rssi" />
+        <WorstTable title={L.ov.worstLoss} rows={worstLoss.data?.items ?? []} kind="loss" />
+        <WorstTable title={L.ov.worstRssi} rows={worstRssi.data?.items ?? []} kind="rssi" />
       </div>
 
       <div className="card" style={{ marginTop: 12 }}>
-        <h2>Recent joins (24h)</h2>
+        <h2>{L.ov.joins}</h2>
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Time</th><th>Device</th><th>DevEUI</th><th>DevAddr</th></tr>
+              <tr><th>{L.ov.colTime}</th><th>{L.ov.colDevice}</th><th>DevEUI</th><th>DevAddr</th></tr>
             </thead>
             <tbody>
               {(joins.data?.items ?? []).map((j) => (
@@ -100,7 +101,7 @@ export default function Overview() {
                 </tr>
               ))}
               {(joins.data?.items.length ?? 0) === 0
-                ? <tr><td colSpan={4} className="empty">No joins in the last 24h</td></tr> : null}
+                ? <tr><td colSpan={4} className="empty">{L.ov.joinsEmpty}</td></tr> : null}
             </tbody>
           </table>
         </div>
@@ -122,9 +123,9 @@ function WorstTable({ title, rows, kind }: {
         <table>
           <thead>
             <tr>
-              <th>Device</th>
-              <th className="num">{kind === 'loss' ? 'Loss %' : 'RSSI'}</th>
-              <th className="num">Uplinks 24h</th>
+              <th>{L.ov.colDevice}</th>
+              <th className="num">{kind === 'loss' ? L.ov.colLoss : 'RSSI'}</th>
+              <th className="num">{L.ov.colUplinks}</th>
             </tr>
           </thead>
           <tbody>
@@ -137,7 +138,7 @@ function WorstTable({ title, rows, kind }: {
                 <td className="num">{int(r.uplinks_24h)}</td>
               </tr>
             ))}
-            {top.length === 0 ? <tr><td colSpan={3} className="empty">No devices yet</td></tr> : null}
+            {top.length === 0 ? <tr><td colSpan={3} className="empty">{L.ov.noDevices}</td></tr> : null}
           </tbody>
         </table>
       </div>

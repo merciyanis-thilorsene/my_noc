@@ -236,3 +236,180 @@ export function useRecentJoins() {
     ...REFETCH,
   });
 }
+
+/* ── Gateways (Part B) ────────────────────────────────────────────────────── */
+
+export interface AppConfig {
+  map_tile_url: string;
+  wmc_enabled: boolean;
+  wmc_poll_interval_sec: number;
+}
+
+export interface GatewayListItem {
+  gw_eui: string;
+  name: string | null;
+  customer_id: number | null;
+  status: string | null;
+  message_interval: number | null;
+  last_status_at: string | null;
+  wmc_latitude: number | null;
+  wmc_longitude: number | null;
+  wmc_location_type: string | null;
+  created_at: string | null;
+  last_polled_at: string | null;
+  site_name: string | null;
+  deployment_address: string | null;
+  deployment_lat: number | null;
+  deployment_lng: number | null;
+  deployment_coord_source: string | null;
+  notes: string | null;
+  updated_by_noc_at: string | null;
+  uplinks_relayed: number;
+  devices_heard: number;
+  avg_rssi: number | null;
+  avg_snr: number | null;
+  active_alerts: number;
+  last_heard_at: string | null;
+  stale: boolean;
+}
+
+export interface GatewayAlert {
+  id: number;
+  gw_eui: string;
+  alert_type: string;
+  severity: string | null;
+  raised_at: string;
+  cleared_at: string | null;
+  acknowledged: number;
+  gateway_name?: string | null;
+  site_name?: string | null;
+}
+
+export interface GatewayObserved {
+  uplinks_relayed: number;
+  devices_heard: number;
+  avg_rssi: number | null;
+  avg_snr: number | null;
+  last_heard_at: string | null;
+}
+
+export interface GatewayVital {
+  name?: string;
+  value?: string | number;
+  date?: string;
+}
+
+export interface GatewayDetail {
+  gateway: Omit<GatewayListItem, 'uplinks_relayed' | 'devices_heard' | 'avg_rssi' | 'avg_snr' | 'active_alerts' | 'last_heard_at' | 'stale'> | null;
+  observed_only: boolean;
+  observed: GatewayObserved;
+  vitals: GatewayVital[];
+  alerts: GatewayAlert[];
+}
+
+export interface GatewayDeviceHeard {
+  dev_eui: string;
+  device_id: string | null;
+  name: string | null;
+  uplinks: number;
+  avg_rssi: number | null;
+  avg_snr: number | null;
+  last_heard_at: string;
+}
+
+export interface GatewaySeriesPoint {
+  t: string;
+  uplinks: number;
+  avg_rssi: number | null;
+  avg_snr: number | null;
+}
+
+export function useConfig() {
+  return useQuery({
+    queryKey: ['config'],
+    queryFn: () => fetchJson<AppConfig>('/api/config'),
+    staleTime: Infinity,
+  });
+}
+
+export function useGateways() {
+  return useQuery({
+    queryKey: ['gateways'],
+    queryFn: () => fetchJson<{ items: GatewayListItem[] }>('/api/gateways'),
+    ...REFETCH,
+  });
+}
+
+export function useGateway(gwEui: string | null) {
+  return useQuery({
+    queryKey: ['gateway', gwEui],
+    queryFn: () => fetchJson<GatewayDetail>(`/api/gateways/${gwEui}`),
+    enabled: gwEui !== null,
+    ...REFETCH,
+  });
+}
+
+export function useGatewayDevices(gwEui: string | null) {
+  return useQuery({
+    queryKey: ['gateway-devices', gwEui],
+    queryFn: () => fetchJson<{ items: GatewayDeviceHeard[] }>(`/api/gateways/${gwEui}/devices?from=24h`),
+    enabled: gwEui !== null,
+    ...REFETCH,
+  });
+}
+
+export function useGatewaySeries(gwEui: string | null) {
+  return useQuery({
+    queryKey: ['gateway-series', gwEui],
+    queryFn: () => fetchJson<{ series: GatewaySeriesPoint[] }>(`/api/gateways/${gwEui}/series?from=24h`),
+    enabled: gwEui !== null,
+    ...REFETCH,
+  });
+}
+
+export function useRecentAlerts() {
+  return useQuery({
+    queryKey: ['alerts'],
+    queryFn: () => fetchJson<{ items: GatewayAlert[] }>('/api/alerts?limit=30'),
+    ...REFETCH,
+  });
+}
+
+export interface GatewayNocUpdate {
+  site_name?: string | null;
+  deployment_address?: string | null;
+  deployment_lat?: number | null;
+  deployment_lng?: number | null;
+  notes?: string | null;
+}
+
+/** Saves operator-owned NOC fields; the backend geocodes a changed address when configured. */
+export async function updateGateway(gwEui: string, patch: GatewayNocUpdate): Promise<GatewayListItem> {
+  const res = await fetch(`${BASE}api/gateways/${gwEui}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(patch),
+  });
+  const data = await res.json().catch(() => ({})) as GatewayListItem & { message?: string; error?: string };
+  if (!res.ok) throw new Error(data.message ?? data.error ?? `${res.status} ${res.statusText}`);
+  return data;
+}
+
+export interface SyncResult {
+  status: number;
+  ok: boolean;
+  error?: string;
+  message?: string;
+  pushed?: { latitude: number; longitude: number };
+}
+
+/** Pushes the NOC coordinate to WMC. Never throws — the guard refusal (409) is a normal outcome. */
+export async function syncGatewayLocation(gwEui: string, force: boolean): Promise<SyncResult> {
+  const res = await fetch(`${BASE}api/gateways/${gwEui}/sync-location`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ force }),
+  });
+  const data = await res.json().catch(() => ({})) as Omit<SyncResult, 'status'>;
+  return { status: res.status, ...data, ok: res.ok };
+}

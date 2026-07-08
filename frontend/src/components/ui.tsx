@@ -1,11 +1,12 @@
 import { ReactNode } from 'react';
 import { LinkHealth } from '../lib/link';
+import { L } from '../lib/i18n';
 
 /** Warning triangle shown for devices whose RF link needs action; hover for the reason. */
 export function AlertIcon({ health }: { health: LinkHealth }) {
   if (health.level === 'ok') return null;
   return (
-    <span className={`alert ${health.level}`} title={health.reasons.join(' · ')} aria-label="needs action">
+    <span className={`alert ${health.level}`} title={health.reasons.join(' · ')} aria-label={L.common.actionNeeded}>
       ⚠
     </span>
   );
@@ -26,7 +27,7 @@ export function Kpi({ label, value, sub, tone }: {
 export const RANGES = ['6h', '24h', '7d', '30d', '90d', '180d'] as const;
 export type Range = typeof RANGES[number];
 export const RANGE_LABEL: Record<Range, string> = {
-  '6h': '6h', '24h': '24h', '7d': '7d', '30d': '30d', '90d': '90d', '180d': '6mo',
+  '6h': '6h', '24h': '24h', '7d': '7j', '30d': '30j', '90d': '90j', '180d': '6m',
 };
 
 export function TimeRange({ value, onChange, options = RANGES }: {
@@ -55,14 +56,14 @@ export function StatusBadge({ lastSeen, medianMins }: { lastSeen: string; median
   const silent = ageMs > thresholdMs;
   return (
     <span className={`badge ${silent ? 'silent' : 'active'}`}>
-      {silent ? 'silent' : 'active'}
+      {silent ? L.common.silent : L.common.active}
     </span>
   );
 }
 
 export function StatusDot({ lastSeen }: { lastSeen: string }) {
   const silent = Date.now() - Date.parse(lastSeen) > 60 * 60_000;
-  return <span className={`dot ${silent ? 'silent' : 'active'}`} title={silent ? 'silent' : 'active'} />;
+  return <span className={`dot ${silent ? 'silent' : 'active'}`} title={silent ? L.common.silent : L.common.active} />;
 }
 
 const SF_VARS: Record<number, string> = {

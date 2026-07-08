@@ -2,6 +2,7 @@ import { ReactNode, useMemo } from 'react';
 import uPlot from 'uplot';
 import UplotChart, { LegendItem } from './UplotChart';
 import type { SeriesPoint, SeriesResult } from '../api';
+import { L } from '../lib/i18n';
 
 interface Built {
   options: Omit<uPlot.Options, 'width' | 'height'>;
@@ -44,9 +45,9 @@ export default function SeriesChart({
     q.data ? [Date.parse(q.data.from) / 1000, Date.parse(q.data.to) / 1000] : undefined
   ), [q.data?.from, q.data?.to]);
 
-  if (q.isLoading && !q.data) return <Box title={title}><div className="loading">Loading…</div></Box>;
-  if (q.error) return <Box title={title}><div className="error">Failed to load</div></Box>;
-  if (!series.length) return <Box title={title}><div className="empty">No data in range</div></Box>;
+  if (q.isLoading && !q.data) return <Box title={title}><div className="loading">{L.common.loading}</div></Box>;
+  if (q.error) return <Box title={title}><div className="error">{L.common.loadError}</div></Box>;
+  if (!series.length) return <Box title={title}><div className="empty">{L.common.noData}</div></Box>;
   return (
     <UplotChart
       options={built.options}
