@@ -125,7 +125,7 @@ export function upsertDevice(db: Db, d: DeviceUpsert): void {
  */
 export function insertUplink(db: Db, uplink: UplinkRow, gateways: GatewayRow[]): void {
   const insertUplinkStmt = db.prepare(`
-    INSERT INTO uplinks (
+    INSERT OR IGNORE INTO uplinks (
       timestamp, dev_eui, device_id, application_id, f_cnt, f_port, frm_payload,
       decoded_payload, data_rate_index, sf, bandwidth, coding_rate, frequency,
       consumed_airtime_s, confirmed, adr, class_b, n_b_trans, best_rssi, best_snr,
@@ -147,7 +147,12 @@ export function insertUplink(db: Db, uplink: UplinkRow, gateways: GatewayRow[]):
     )
   `);
   const tx = db.transaction(() => {
-    const { lastInsertRowid } = insertUplinkStmt.run(uplink);
+    const { changes, lastInsertRowid } = insertUplinkStmt.run(uplink);
+    // A retried webhook delivery is a duplicate (same dev_eui, f_cnt, timestamp) and is ignored;
+    // its gateway rows would orphan onto the already-stored uplink, so skip them too.
+    if (changes === 0) {
+      return;
+    }
     gateways.forEach((gw) => {
       insertGatewayStmt.run({ ...gw, uplinkId: lastInsertRowid });
     });
