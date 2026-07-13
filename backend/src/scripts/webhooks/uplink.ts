@@ -21,6 +21,7 @@ import {
   type TtsGatewayMetadata,
   type TtsWebhookPayload,
 } from 'scripts/webhooks/tts';
+import tryOrangeUplink from 'scripts/webhooks/orange';
 
 /**
  * Maps a single TTS rx_metadata entry to a gateway row.
@@ -48,15 +49,21 @@ function maxOrNull(values: (number | null)[]): number | null {
 }
 
 /**
- * Normalizes an `uplink_message` webhook and persists the uplink, its gateways, and the
- * device registry entry. Returns `false` when the payload lacks required identifiers or is
- * missing the uplink message body.
+ * Normalizes an uplink webhook and persists the uplink, its gateways, and the device registry
+ * entry. Accepts both The Things Stack v3 and Orange Live Objects payloads (the latter handled
+ * by {@link tryOrangeUplink}). Returns `false` when the payload lacks required identifiers or
+ * is missing the uplink message body.
  */
 export default function handleUplink(
   db: Db,
   payload: TtsWebhookPayload,
   receivedAt: string,
 ): boolean {
+  // Orange Live Objects uses a different envelope; delegate when it recognizes the shape.
+  const orange = tryOrangeUplink(db, payload, receivedAt);
+  if (orange !== null) {
+    return orange;
+  }
   const identity = extractIdentity(payload);
   const message = payload.uplink_message;
   if (identity === null || message?.f_cnt === undefined) {
