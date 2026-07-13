@@ -86,6 +86,10 @@ a:hover { color: #32308e; text-decoration: underline; }
   display: inline-block;
   white-space: nowrap;
   direction: ltr;
+  /* Icons are glyph-name ligatures: never let a parent's text-transform/letter-spacing
+     (e.g. uppercased card headings) mangle them into literal text. */
+  text-transform: none;
+  letter-spacing: normal;
   font-feature-settings: "liga";
   -webkit-font-smoothing: antialiased;
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 20;

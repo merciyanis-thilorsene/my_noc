@@ -346,6 +346,16 @@ function GatewaysHeard({ devEui, from }: { devEui: string; from: string }) {
           </tbody>
         </table>
       </div>
+      {items.length === 1 ? (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 7, marginTop: 10,
+          color: 'var(--berry-text)', fontSize: 12, fontWeight: 600,
+        }}
+        >
+          <span className="icon" style={{ fontSize: 15 }}>crisis_alert</span>
+          {L.dd.tSinglePoint}
+        </div>
+      ) : null}
     </div>
   );
 }

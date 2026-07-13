@@ -276,6 +276,33 @@ export function getDeviceGateways(
 }
 
 /**
+ * Devices heard by exactly one distinct gateway in the window — a redundancy risk: they have
+ * no path diversity, so that single gateway going down drops them silently. Considers only
+ * reception with a known gateway EUI (TTS), so Orange-only devices — which carry no per-gateway
+ * EUI — never appear here. Busiest first (highest-impact single points of failure).
+ */
+export function getSingleGatewayDevices(db: Db, fromIso: string): Record<string, unknown>[] {
+  return db.prepare(`
+    SELECT u.dev_eui AS dev_eui,
+           MAX(u.device_id) AS device_id,
+           MAX(d.name) AS name,
+           COUNT(*) AS uplinks,
+           MAX(ug.timestamp) AS last_heard_at,
+           MIN(ug.gateway_eui) AS gw_eui,
+           MAX(gw.name) AS gw_name,
+           MAX(gw.site_name) AS gw_site_name
+    FROM uplink_gateways ug
+    JOIN uplinks u ON u.id = ug.uplink_id
+    LEFT JOIN devices d ON d.dev_eui = u.dev_eui
+    LEFT JOIN gateways gw ON gw.gw_eui = ug.gateway_eui
+    WHERE ug.gateway_eui IS NOT NULL AND ug.timestamp >= @from
+    GROUP BY u.dev_eui
+    HAVING COUNT(DISTINCT ug.gateway_eui) = 1
+    ORDER BY uplinks DESC
+  `).all({ from: fromIso }) as Record<string, unknown>[];
+}
+
+/**
  * Per-bucket observed traffic and RF for one gateway, for the detail-page charts.
  */
 export function getGatewaySeries(

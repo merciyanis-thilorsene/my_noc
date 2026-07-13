@@ -17,7 +17,7 @@ import { exportHeaders, exportUplinks } from 'scripts/api/exportUplinks';
 import { packetLoss } from 'scripts/lib/metrics';
 import { parseRange, resolveBucket, type TimeRange } from 'scripts/lib/time';
 import { normalizeEui } from 'scripts/webhooks/tts';
-import { getDeviceGateways } from 'scripts/db/gatewayQueries';
+import { getDeviceGateways, getSingleGatewayDevices } from 'scripts/db/gatewayQueries';
 
 /**
  * A device registry row as stored.
@@ -373,10 +373,24 @@ function gatewaysHandler(db: Db, request: FastifyRequest): unknown {
 }
 
 /**
+ * GET /api/redundancy — fleet redundancy risk: devices heard by a single gateway in the window.
+ */
+function redundancyHandler(db: Db, request: FastifyRequest): unknown {
+  const query = request.query as { from?: string; to?: string };
+  const range = parseRange(query.from ?? '24h', query.to, Date.now());
+  return {
+    from: range.from,
+    to: range.to,
+    single_gateway: getSingleGatewayDevices(db, range.from),
+  };
+}
+
+/**
  * Registers all device-scoped routes.
  */
 export default function registerDeviceRoutes(instance: FastifyInstance, db: Db): void {
   instance.get('/api/devices', (request) => listHandler(db, request));
+  instance.get('/api/redundancy', (request) => redundancyHandler(db, request));
   instance.get('/api/devices/:dev_eui', (request, reply) => detailHandler(db, request, reply));
   instance.get('/api/devices/:dev_eui/uplinks', (request) => uplinksHandler(db, request));
   instance.get('/api/devices/:dev_eui/downlinks', (request) => downlinksHandler(db, request));

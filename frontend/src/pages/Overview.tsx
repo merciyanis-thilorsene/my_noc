@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  useDevices, useFleetMetric, useOverview, useRecentJoins,
+  useDevices, useFleetMetric, useOverview, useRecentJoins, useRedundancy,
 } from '../api';
 import {
   Kpi, TimeRange, Range, lossTone,
@@ -84,6 +84,8 @@ export default function Overview() {
         <WorstTable title={L.ov.worstRssi} rows={worstRssi.data?.items ?? []} kind="rssi" />
       </div>
 
+      <RedundancyCard />
+
       <div className="card" style={{ marginTop: 12 }}>
         <h2>{L.ov.joins}</h2>
         <div className="table-wrap">
@@ -105,6 +107,56 @@ export default function Overview() {
             </tbody>
           </table>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function RedundancyCard() {
+  const q = useRedundancy();
+  const rows = q.data?.single_gateway ?? [];
+  return (
+    <div className="card" style={{ marginTop: 12, borderColor: rows.length > 0 ? 'var(--berry-border)' : undefined }}>
+      <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span className="icon" style={{ fontSize: 16, color: rows.length > 0 ? 'var(--berry)' : 'var(--text-3)' }}>crisis_alert</span>
+        {L.ov.redundancy}
+        {rows.length > 0 ? <span className="count-pill">{int(rows.length)}</span> : null}
+        <span className="muted" style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+          {L.ov.redundancyHint}
+        </span>
+      </h2>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>{L.ov.colDevice}</th>
+              <th>{L.ov.colVia}</th>
+              <th className="num">{L.ov.colUplinks}</th>
+              <th>{L.ov.colHeard}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((d) => (
+              <tr key={d.dev_eui} className="clickable">
+                <td>
+                  <Link to={`/devices/${d.dev_eui}`}>{d.name ?? d.device_id ?? d.dev_eui}</Link>
+                </td>
+                <td>
+                  <Link to={`/gateways?gw=${d.gw_eui}`} style={{ color: 'inherit' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      <span className="icon" style={{ fontSize: 14, color: 'var(--text-3)' }}>cell_tower</span>
+                      {d.gw_name ?? d.gw_site_name ?? d.gw_eui}
+                    </span>
+                  </Link>
+                </td>
+                <td className="num">{int(d.uplinks)}</td>
+                <td className="muted">{ago(d.last_heard_at)}</td>
+              </tr>
+            ))}
+            {rows.length === 0
+              ? <tr><td colSpan={4} className="empty">{L.ov.redundancyEmpty}</td></tr> : null}
+          </tbody>
+        </table>
       </div>
     </div>
   );

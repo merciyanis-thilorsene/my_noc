@@ -256,6 +256,26 @@ export function useRecentJoins() {
   });
 }
 
+export interface RedundancyDevice {
+  dev_eui: string;
+  device_id: string | null;
+  name: string | null;
+  uplinks: number;
+  last_heard_at: string;
+  gw_eui: string;
+  gw_name: string | null;
+  gw_site_name: string | null;
+}
+
+/** Devices heard by a single gateway (no path diversity) over the last 24h. */
+export function useRedundancy() {
+  return useQuery({
+    queryKey: ['redundancy'],
+    queryFn: () => fetchJson<{ single_gateway: RedundancyDevice[] }>('/api/redundancy?from=24h'),
+    ...REFETCH,
+  });
+}
+
 /* ── Gateways (Part B) ────────────────────────────────────────────────────── */
 
 export interface AppConfig {

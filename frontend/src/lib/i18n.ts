@@ -106,6 +106,8 @@ export interface Strings {
     noDevices: string;
     joins: string; colTime: string;
     joinsEmpty: string;
+    redundancy: string; redundancyHint: string; redundancyEmpty: string;
+    colVia: string; colHeard: string;
   };
   dev: {
     title: string;
@@ -129,6 +131,7 @@ export interface Strings {
     tDownlinks: string; tFirstSeen: string; tLifecycle: string; tDownlinksEmpty: string;
     tJoins: string; tJoinsEmpty: string;
     tGateways: string; tGatewaysEmpty: string; tHeardVia: (n: number) => string;
+    tSinglePoint: string;
     loading: string; notFound: string;
   };
   exp: {
@@ -327,6 +330,11 @@ const fr: Strings = {
     joins: 'Joins récents (24h)',
     colTime: 'Heure',
     joinsEmpty: 'Aucun join sur les dernières 24h',
+    redundancy: 'Redondance passerelle',
+    redundancyHint: 'Appareils entendus par une seule passerelle (24h) — aucun chemin de secours',
+    redundancyEmpty: 'Aucun risque — chaque appareil (données passerelle) est entendu par plusieurs passerelles',
+    colVia: 'Via passerelle',
+    colHeard: 'Entendu',
   },
   dev: {
     title: 'Appareils',
@@ -391,6 +399,7 @@ const fr: Strings = {
     tGateways: 'Passerelles réceptrices',
     tGatewaysEmpty: 'Aucune passerelle identifiée (les uplinks Orange n’exposent pas les EUI des passerelles)',
     tHeardVia: (n) => `${n} passerelle${n === 1 ? '' : 's'}`,
+    tSinglePoint: 'Point de défaillance unique — entendu par une seule passerelle',
     loading: 'Chargement de l’appareil…',
     notFound: 'Appareil introuvable.',
   },
@@ -604,6 +613,11 @@ const en: Strings = {
     joins: 'Recent joins (24h)',
     colTime: 'Time',
     joinsEmpty: 'No joins in the last 24h',
+    redundancy: 'Gateway redundancy',
+    redundancyHint: 'Devices heard by a single gateway (24h) — no backup path',
+    redundancyEmpty: 'No risk — every device (with gateway data) is heard by multiple gateways',
+    colVia: 'Via gateway',
+    colHeard: 'Heard',
   },
   dev: {
     title: 'Devices',
@@ -668,6 +682,7 @@ const en: Strings = {
     tGateways: 'Gateways heard',
     tGatewaysEmpty: 'No gateways identified (Orange uplinks carry no per-gateway EUIs)',
     tHeardVia: (n) => `${n} gateway${n === 1 ? '' : 's'}`,
+    tSinglePoint: 'Single point of failure — heard by only one gateway',
     loading: 'Loading device…',
     notFound: 'Device not found.',
   },
