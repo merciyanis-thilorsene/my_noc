@@ -15,6 +15,7 @@ import registerDeviceRoutes from 'scripts/api/devices';
 import registerFleetMetricsRoutes from 'scripts/api/metrics';
 import registerDownlinkRoutes from 'scripts/api/downlink';
 import registerGatewayRoutes, { type GatewayRouteDeps } from 'scripts/api/gateways';
+import registerAuthRoutes, { type AuthConfig } from 'scripts/api/auth';
 
 /**
  * Wires every HTTP route onto the Fastify instance: TTS + WMC webhook ingest and the read API.
@@ -26,7 +27,10 @@ export default function declareRoutes(
   config: Configuration,
   logger: Logger,
   deps: GatewayRouteDeps,
+  auth: AuthConfig,
 ): void {
+  // Registered first so its onRequest gate runs before any handler.
+  registerAuthRoutes(instance, logger, auth);
   registerWebhookRoutes(instance, { db, logger, webhookSecret: config.webhookSecret });
   registerWmcAlertsRoute(instance, db, logger, config.wmcAlertsWebhookSecret);
   registerHealthRoutes(instance, db, config);
@@ -35,10 +39,12 @@ export default function declareRoutes(
   registerFleetMetricsRoutes(instance, db);
   registerDownlinkRoutes(instance, db, config, logger);
   registerGatewayRoutes(instance, db, logger, deps);
-  // Small config surface the frontend reads at load (map tiles, whether WMC is wired).
+  // Small config surface the frontend reads at load (map tiles, whether WMC is wired,
+  // whether the access-code gate is on so the UI can show a logout control).
   instance.get('/api/config', () => ({
     map_tile_url: config.mapTileUrl,
     wmc_enabled: deps.wmcClient !== null,
     wmc_poll_interval_sec: config.wmcPollIntervalSec,
+    auth_required: config.accessCode !== null,
   }));
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
-import { useGateways } from '../api';
+import { logout, useConfig, useGateways } from '../api';
 import { applyTheme, getTheme, type ThemeName } from '../lib/theme';
 import { getLang, setLang, L } from '../lib/i18n';
 
@@ -34,7 +34,13 @@ export default function Layout() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const gateways = useGateways();
+  const config = useConfig();
   const [theme, setTheme] = useState<ThemeName>(getTheme());
+
+  const onLogout = () => {
+    // Clear the cookie, then reload so AuthGate re-probes and shows the login screen.
+    logout().finally(() => window.location.reload());
+  };
   const activeAlerts = (gateways.data?.items ?? [])
     .reduce((sum, g) => sum + g.active_alerts, 0);
 
@@ -106,6 +112,11 @@ export default function Layout() {
           >
             <span className="icon">monitor_heart</span>
           </a>
+          {config.data?.auth_required === true ? (
+            <button type="button" className="bell" title={L.auth.logout} onClick={onLogout}>
+              <span className="icon">logout</span>
+            </button>
+          ) : null}
         </div>
       </header>
       <main className="content">

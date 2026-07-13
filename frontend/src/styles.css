@@ -520,3 +520,42 @@ a.pill:hover { text-decoration: none; border-color: var(--text-3); color: var(--
 /* Tiles stay the standard OSM raster; dim them slightly so the map sits into the theme. */
 :root[data-theme="dark"] .leaflet-container { background: #0e1320; }
 :root[data-theme="dark"] .leaflet-layer { filter: brightness(0.82) saturate(0.85); }
+
+/* ── Access-code login screen ────────────────────────────────────────────────── */
+.login-screen {
+  min-height: 100vh;
+  display: flex; align-items: center; justify-content: center;
+  padding: 24px;
+  background:
+    radial-gradient(900px 500px at 50% -10%, rgba(93, 94, 217, 0.10), transparent 60%),
+    var(--bg-0);
+}
+.login-card {
+  width: 100%; max-width: 380px;
+  background: var(--bg-1);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 32px 28px;
+  box-shadow: var(--shadow-popover);
+  text-align: center;
+}
+.login-card .mark {
+  width: 52px; height: 52px; margin: 0 auto 16px;
+  display: block;
+}
+.login-card h1 { font-size: 20px; font-weight: 700; margin: 0 0 6px; }
+.login-card .sub { color: var(--text-2); font-size: 13px; margin: 0 0 22px; }
+.login-form { display: flex; flex-direction: column; gap: 12px; }
+.login-form input {
+  width: 100%; text-align: center; letter-spacing: 0.08em;
+  background: var(--bg-1); border: 1px solid var(--border); color: var(--text-1);
+  padding: 11px 14px; border-radius: 9px; font: inherit; font-size: 15px; outline: none;
+}
+.login-form input:focus { border-color: #9bb6d3; }
+.login-form .btn.primary { justify-content: center; padding: 11px; font-size: 14px; }
+.login-error {
+  color: var(--crit); font-size: 12px; min-height: 16px;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+.login-error .icon { font-size: 15px; }
+.login-checking { min-height: 100vh; display: flex; align-items: center; justify-content: center; color: var(--text-3); }

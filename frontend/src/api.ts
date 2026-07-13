@@ -243,6 +243,40 @@ export interface AppConfig {
   map_tile_url: string;
   wmc_enabled: boolean;
   wmc_poll_interval_sec: number;
+  auth_required: boolean;
+}
+
+/* ── Access-code auth ─────────────────────────────────────────────────────── */
+
+/** Probes whether the current session is authenticated (or the gate is disabled). */
+export async function checkSession(): Promise<boolean> {
+  const res = await fetch(`${BASE}api/session`);
+  return res.ok;
+}
+
+export interface LoginResult {
+  ok: boolean;
+  status: number;
+  error?: string;
+  retryAfter?: number;
+}
+
+/** Submits the access code; the server sets an httpOnly session cookie on success. */
+export async function login(code: string): Promise<LoginResult> {
+  const res = await fetch(`${BASE}api/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ code }),
+  });
+  const data = await res.json().catch(() => ({})) as { error?: string; retry_after?: number };
+  return {
+    ok: res.ok, status: res.status, error: data.error, retryAfter: data.retry_after,
+  };
+}
+
+/** Clears the session cookie. */
+export async function logout(): Promise<void> {
+  await fetch(`${BASE}api/logout`, { method: 'POST' });
 }
 
 export interface GatewayListItem {

@@ -45,6 +45,8 @@ export interface Configuration {
   geocoderUrl: string | null;
   /** Map tile URL template served to the frontend Gateways map. */
   mapTileUrl: string;
+  /** Shared access code gating the dashboard API; null disables the gate (open access). */
+  accessCode: string | null;
 }
 
 /**
@@ -139,5 +141,6 @@ export function loadConfiguration(): Configuration {
     wmcAlertsWebhookSecret: resolveOptionalSecret('WMC_ALERTS_WEBHOOK_SECRET'),
     geocoderUrl: (env('GEOCODER_URL') ?? 'https://nominatim.openstreetmap.org').replace(/\/$/, '') || null,
     mapTileUrl: envOr('MAP_TILE_URL', 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'),
+    accessCode: resolveOptionalSecret('ACCESS_CODE'),
   };
 }

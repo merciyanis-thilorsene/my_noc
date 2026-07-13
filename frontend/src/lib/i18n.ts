@@ -143,6 +143,12 @@ export interface Strings {
     colResult: string; sentOne: string; failedOne: string;
     color: string; solid: string; blink: string; off: string;
   };
+  auth: {
+    title: string; subtitle: string;
+    codePlaceholder: string; submit: string; submitting: string;
+    wrongCode: string; tooMany: (secs: number) => string; networkError: string;
+    logout: string;
+  };
 }
 
 const fr: Strings = {
@@ -406,6 +412,17 @@ const fr: Strings = {
     blink: 'clignotant',
     off: 'éteint',
   },
+  auth: {
+    title: 'Accès sécurisé',
+    subtitle: 'Saisissez le code d’accès pour continuer.',
+    codePlaceholder: 'Code d’accès',
+    submit: 'Déverrouiller',
+    submitting: 'Vérification…',
+    wrongCode: 'Code incorrect.',
+    tooMany: (secs) => `Trop de tentatives. Réessayez dans ${secs}s.`,
+    networkError: 'Connexion impossible. Réessayez.',
+    logout: 'Se déconnecter',
+  },
 };
 
 const en: Strings = {
@@ -668,6 +685,17 @@ const en: Strings = {
     solid: 'solid',
     blink: 'blink',
     off: 'off',
+  },
+  auth: {
+    title: 'Secure access',
+    subtitle: 'Enter the access code to continue.',
+    codePlaceholder: 'Access code',
+    submit: 'Unlock',
+    submitting: 'Checking…',
+    wrongCode: 'Incorrect code.',
+    tooMany: (secs) => `Too many attempts. Retry in ${secs}s.`,
+    networkError: 'Connection failed. Try again.',
+    logout: 'Log out',
   },
 };
 

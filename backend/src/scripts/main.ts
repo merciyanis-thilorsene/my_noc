@@ -14,6 +14,7 @@ import startRetentionScheduler from 'scripts/lib/retention';
 import startWmcPoller from 'scripts/lib/wmcPoller';
 import WmcClient from 'scripts/lib/wmcClient';
 import Geocoder from 'scripts/lib/geocoder';
+import { createSessionSecret, LoginThrottle } from 'scripts/lib/auth';
 
 /**
  * Application entry point: load config, open the database, wire routes, and start serving.
@@ -39,13 +40,25 @@ async function start(): Promise<void> {
   const geocoder = config.geocoderUrl !== null ? new Geocoder(logger, config.geocoderUrl) : null;
   const stopPoller = startWmcPoller(db, wmcClient, config, logger);
 
+  const auth = {
+    accessCode: config.accessCode,
+    sessionSecret: createSessionSecret(),
+    throttle: new LoginThrottle(),
+  };
+  if (config.accessCode !== null) {
+    logger.info('Access-code gate enabled.');
+  }
+
   const instance = fastify({
     // Webhook payloads with many gateways can be sizeable; keep a generous but bounded limit.
     bodyLimit: 262_144,
+    // Behind our own Traefik: trust X-Forwarded-* so request.ip is the real client
+    // (accurate per-IP login throttling) and X-Forwarded-Proto drives the cookie Secure flag.
+    trustProxy: true,
     logger: loggerOptions(config.logLevel),
   });
 
-  declareRoutes(instance, db, config, logger, { wmcClient, geocoder });
+  declareRoutes(instance, db, config, logger, { wmcClient, geocoder }, auth);
   await registerStatic(instance, config.publicDir, logger);
 
   const shutdown = (signal: string): void => {
