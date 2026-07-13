@@ -1,13 +1,14 @@
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import {
-  useDevice, useDeviceDownlinks, useDeviceEvents, useDeviceJoins, useDeviceMetric, useDeviceUplinks,
-  sendBusylightDownlink, SeriesPoint,
+  useDevice, useDeviceDownlinks, useDeviceEvents, useDeviceGateways, useDeviceJoins,
+  useDeviceMetric, useDeviceUplinks, sendBusylightDownlink, SeriesPoint,
 } from '../api';
 import {
   Kpi, TimeRange, Range, SfBadge, StatusBadge, lossTone,
 } from '../components/ui';
 import { linkHealth } from '../lib/link';
+import { rssiColor, statusMeta } from '../lib/gateways';
 import BusylightControls, { busylightPayload, LightMode } from '../components/BusylightControls';
 import SeriesChart from '../components/SeriesChart';
 import {
@@ -295,12 +296,67 @@ function ControlTab({ devEui }: { devEui: string }) {
   );
 }
 
+function GatewaysHeard({ devEui, from }: { devEui: string; from: string }) {
+  const gws = useDeviceGateways(devEui, from);
+  const items = gws.data?.items ?? [];
+  return (
+    <div className="card">
+      <h2>
+        {L.dd.tGateways}
+        {items.length > 0 ? <span className="muted">{` · ${L.dd.tHeardVia(items.length)}`}</span> : null}
+      </h2>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>{L.gw.colGateway}</th>
+              <th className="num">{L.gw.colUplinks}</th>
+              <th className="num">RSSI</th>
+              <th className="num">SNR</th>
+              <th>{L.gw.colHeard}</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((g) => {
+              const meta = statusMeta({ status: g.status, stale: false });
+              return (
+                <tr key={g.gw_eui} className="clickable">
+                  <td>
+                    <Link to={`/gateways?gw=${g.gw_eui}`} style={{ color: 'inherit' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                        <span className="icon" style={{ fontSize: 15, color: meta.color }}>cell_tower</span>
+                        <span>
+                          <span style={{ fontWeight: 600 }}>{g.name ?? g.site_name ?? g.gw_eui}</span>
+                          {g.name !== null || g.site_name !== null
+                            ? <span className="mono muted" style={{ display: 'block', fontSize: 10 }}>{g.gw_eui}</span>
+                            : null}
+                        </span>
+                      </span>
+                    </Link>
+                  </td>
+                  <td className="num">{int(g.uplinks)}</td>
+                  <td className="num" style={{ color: rssiColor(g.avg_rssi) }}>{num(g.avg_rssi, 0)}</td>
+                  <td className="num">{num(g.avg_snr)}</td>
+                  <td className="muted">{ago(g.last_heard_at)}</td>
+                </tr>
+              );
+            })}
+            {items.length === 0
+              ? <tr><td colSpan={5} className="empty">{L.dd.tGatewaysEmpty}</td></tr> : null}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 function Tables({ devEui, from }: { devEui: string; from: string }) {
   const ups = useDeviceUplinks(devEui, from);
   const dls = useDeviceDownlinks(devEui, from);
   const joins = useDeviceJoins(devEui, from);
   return (
     <div className="grid" style={{ marginTop: 16 }}>
+      <GatewaysHeard devEui={devEui} from={from} />
       <div className="card">
         <h2>{L.dd.tUplinks}</h2>
         <div className="table-wrap">

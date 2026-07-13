@@ -128,6 +128,7 @@ export interface Strings {
     tUplinks: string; tTime: string; tAir: string; tUplinksEmpty: string;
     tDownlinks: string; tFirstSeen: string; tLifecycle: string; tDownlinksEmpty: string;
     tJoins: string; tJoinsEmpty: string;
+    tGateways: string; tGatewaysEmpty: string; tHeardVia: (n: number) => string;
     loading: string; notFound: string;
   };
   exp: {
@@ -387,6 +388,9 @@ const fr: Strings = {
     tDownlinksEmpty: 'Aucun downlink sur la période',
     tJoins: 'Joins',
     tJoinsEmpty: 'Aucun join sur la période',
+    tGateways: 'Passerelles réceptrices',
+    tGatewaysEmpty: 'Aucune passerelle identifiée (les uplinks Orange n’exposent pas les EUI des passerelles)',
+    tHeardVia: (n) => `${n} passerelle${n === 1 ? '' : 's'}`,
     loading: 'Chargement de l’appareil…',
     notFound: 'Appareil introuvable.',
   },
@@ -661,6 +665,9 @@ const en: Strings = {
     tDownlinksEmpty: 'No downlinks in range',
     tJoins: 'Joins',
     tJoinsEmpty: 'No joins in range',
+    tGateways: 'Gateways heard',
+    tGatewaysEmpty: 'No gateways identified (Orange uplinks carry no per-gateway EUIs)',
+    tHeardVia: (n) => `${n} gateway${n === 1 ? '' : 's'}`,
     loading: 'Loading device…',
     notFound: 'Device not found.',
   },

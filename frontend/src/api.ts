@@ -229,6 +229,25 @@ export function useDeviceJoins(devEui: string, from: string) {
   });
 }
 
+export interface DeviceGatewayHeard {
+  gw_eui: string;
+  name: string | null;
+  site_name: string | null;
+  status: string | null;
+  uplinks: number;
+  avg_rssi: number | null;
+  avg_snr: number | null;
+  last_heard_at: string;
+}
+
+export function useDeviceGateways(devEui: string, from: string) {
+  return useQuery({
+    queryKey: ['device-gateways', devEui, from],
+    queryFn: () => fetchJson<{ items: DeviceGatewayHeard[] }>(`/api/devices/${devEui}/gateways?from=${from}`),
+    ...REFETCH,
+  });
+}
+
 export function useRecentJoins() {
   return useQuery({
     queryKey: ['recent-joins'],

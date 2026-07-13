@@ -248,6 +248,34 @@ export function getGatewayDevices(
 }
 
 /**
+ * Gateways that have heard a given device in the window, most-active first (the inverse of
+ * {@link getGatewayDevices}). Joins to the gateway registry for a display name; TTS uplinks
+ * only, since Orange carries no per-gateway EUIs.
+ */
+export function getDeviceGateways(
+  db: Db,
+  devEui: string,
+  fromIso: string,
+): Record<string, unknown>[] {
+  return db.prepare(`
+    SELECT ug.gateway_eui AS gw_eui,
+           MAX(g.name) AS name,
+           MAX(g.site_name) AS site_name,
+           g.status AS status,
+           COUNT(*) AS uplinks,
+           AVG(ug.rssi) AS avg_rssi,
+           AVG(ug.snr) AS avg_snr,
+           MAX(ug.timestamp) AS last_heard_at
+    FROM uplink_gateways ug
+    JOIN uplinks u ON u.id = ug.uplink_id
+    LEFT JOIN gateways g ON g.gw_eui = ug.gateway_eui
+    WHERE u.dev_eui = @devEui AND ug.gateway_eui IS NOT NULL AND ug.timestamp >= @from
+    GROUP BY ug.gateway_eui
+    ORDER BY uplinks DESC
+  `).all({ devEui, from: fromIso }) as Record<string, unknown>[];
+}
+
+/**
  * Per-bucket observed traffic and RF for one gateway, for the detail-page charts.
  */
 export function getGatewaySeries(

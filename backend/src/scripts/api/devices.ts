@@ -17,6 +17,7 @@ import { exportHeaders, exportUplinks } from 'scripts/api/exportUplinks';
 import { packetLoss } from 'scripts/lib/metrics';
 import { parseRange, resolveBucket, type TimeRange } from 'scripts/lib/time';
 import { normalizeEui } from 'scripts/webhooks/tts';
+import { getDeviceGateways } from 'scripts/db/gatewayQueries';
 
 /**
  * A device registry row as stored.
@@ -358,6 +359,20 @@ function deviceMetricsHandler(db: Db, request: FastifyRequest, reply: FastifyRep
 }
 
 /**
+ * GET /api/devices/:dev_eui/gateways — gateways that have heard this device in the window.
+ */
+function gatewaysHandler(db: Db, request: FastifyRequest): unknown {
+  const devEui = devEuiParam(request);
+  const query = request.query as { from?: string; to?: string };
+  const range = parseRange(query.from ?? '24h', query.to, Date.now());
+  return {
+    from: range.from,
+    to: range.to,
+    items: devEui === null ? [] : getDeviceGateways(db, devEui, range.from),
+  };
+}
+
+/**
  * Registers all device-scoped routes.
  */
 export default function registerDeviceRoutes(instance: FastifyInstance, db: Db): void {
@@ -366,6 +381,7 @@ export default function registerDeviceRoutes(instance: FastifyInstance, db: Db):
   instance.get('/api/devices/:dev_eui/uplinks', (request) => uplinksHandler(db, request));
   instance.get('/api/devices/:dev_eui/downlinks', (request) => downlinksHandler(db, request));
   instance.get('/api/devices/:dev_eui/joins', (request) => joinsHandler(db, request));
+  instance.get('/api/devices/:dev_eui/gateways', (request) => gatewaysHandler(db, request));
   instance.get('/api/devices/:dev_eui/events', (request) => eventsHandler(db, request));
   instance.get('/api/devices/:dev_eui/export', (request, reply) => exportHandler(db, request, reply));
   instance.get(
