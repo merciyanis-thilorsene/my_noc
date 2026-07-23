@@ -136,9 +136,12 @@ export interface Strings {
   };
   exp: {
     title: string;
-    summary: (fmt: string, range: string) => string;
+    summary: (fmt: string, range: string, kind: string) => string;
     download: string;
     colDeviceId: string;
+    kindUplinks: string;
+    kindDownlinks: string;
+    colDownlinks: string;
   };
   ctl: {
     title: string; cardTitle: string;
@@ -404,10 +407,13 @@ const fr: Strings = {
     notFound: 'Appareil introuvable.',
   },
   exp: {
-    title: 'Exporter les uplinks',
-    summary: (fmt, range) => `${fmt} · ${range} · max 50k uplinks`,
+    title: 'Exporter',
+    summary: (fmt, range, kind) => `${fmt} · ${range} · max 50k ${kind}`,
     download: '⤓ Exporter',
     colDeviceId: 'ID appareil',
+    kindUplinks: 'Uplinks',
+    kindDownlinks: 'Downlinks',
+    colDownlinks: 'Downlinks 24h',
   },
   ctl: {
     title: 'Contrôle Busylight',
@@ -687,10 +693,13 @@ const en: Strings = {
     notFound: 'Device not found.',
   },
   exp: {
-    title: 'Export uplinks',
-    summary: (fmt, range) => `${fmt} · ${range} · max 50k uplinks`,
+    title: 'Export',
+    summary: (fmt, range, kind) => `${fmt} · ${range} · max 50k ${kind}`,
     download: '⤓ Export',
     colDeviceId: 'Device ID',
+    kindUplinks: 'Uplinks',
+    kindDownlinks: 'Downlinks',
+    colDownlinks: 'Downlinks 24h',
   },
   ctl: {
     title: 'Busylight control',

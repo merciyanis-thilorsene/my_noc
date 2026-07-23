@@ -5,10 +5,12 @@ import { ago, int } from '../lib/format';
 import { L } from '../lib/i18n';
 
 type Format = 'json' | 'csv';
+type Kind = 'uplinks' | 'downlinks';
 
 export default function Export() {
   const [range, setRange] = useState<Range>('7d');
   const [format, setFormat] = useState<Format>('json');
+  const [kind, setKind] = useState<Kind>('uplinks');
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState('');
 
@@ -40,7 +42,7 @@ export default function Export() {
   };
 
   const euis = [...selected];
-  const url = `${import.meta.env.BASE_URL}api/export?dev_euis=${euis.join(',')}&from=${range}&format=${format}`;
+  const url = `${import.meta.env.BASE_URL}api/export?dev_euis=${euis.join(',')}&from=${range}&format=${format}&kind=${kind}`;
 
   const download = () => {
     const a = document.createElement('a');
@@ -56,6 +58,10 @@ export default function Export() {
       <div className="page-head">
         <h1>{L.exp.title}</h1>
         <div className="spacer" style={{ flex: 1 }} />
+        <div className="seg">
+          <button type="button" className={kind === 'uplinks' ? 'active' : ''} onClick={() => setKind('uplinks')}>{L.exp.kindUplinks}</button>
+          <button type="button" className={kind === 'downlinks' ? 'active' : ''} onClick={() => setKind('downlinks')}>{L.exp.kindDownlinks}</button>
+        </div>
         <div className="seg">
           <button type="button" className={format === 'json' ? 'active' : ''} onClick={() => setFormat('json')}>JSON</button>
           <button type="button" className={format === 'csv' ? 'active' : ''} onClick={() => setFormat('csv')}>CSV</button>
@@ -77,7 +83,7 @@ export default function Export() {
           />
           <div className="spacer" style={{ flex: 1 }} />
           <span className="muted" style={{ fontSize: 11 }}>
-            {L.exp.summary(format.toUpperCase(), range)}
+            {L.exp.summary(format.toUpperCase(), range, kind)}
           </span>
           <button
             type="button"
@@ -110,7 +116,7 @@ export default function Export() {
                 <th>{L.common.name}</th>
                 <th>DevEUI</th>
                 <th>{L.exp.colDeviceId}</th>
-                <th className="num">{L.dev.colUplinks}</th>
+                <th className="num">{kind === 'downlinks' ? L.exp.colDownlinks : L.dev.colUplinks}</th>
                 <th>{L.common.seen}</th>
               </tr>
             </thead>
@@ -129,7 +135,7 @@ export default function Export() {
                   <td>{d.name ?? d.device_id}</td>
                   <td className="mono">{d.dev_eui}</td>
                   <td className="mono muted">{d.device_id}</td>
-                  <td className="num">{int(d.uplinks_24h)}</td>
+                  <td className="num">{int(kind === 'downlinks' ? d.downlinks_24h : d.uplinks_24h)}</td>
                   <td className="muted">{ago(d.last_seen_at)}</td>
                 </tr>
               ))}

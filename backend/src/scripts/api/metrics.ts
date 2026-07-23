@@ -6,7 +6,7 @@
 import { type FastifyInstance, type FastifyReply, type FastifyRequest } from 'fastify';
 import { type Db } from 'scripts/db/connection';
 import { buildSeries, SUPPORTED_METRICS } from 'scripts/api/metricsEngine';
-import { exportHeaders, exportUplinks } from 'scripts/api/exportUplinks';
+import { exportDownlinks, exportHeaders, exportUplinks } from 'scripts/api/exportUplinks';
 import { parseRange, resolveBucket } from 'scripts/lib/time';
 import { normalizeEui } from 'scripts/webhooks/tts';
 
@@ -38,11 +38,14 @@ function recentJoinsHandler(db: Db, request: FastifyRequest): unknown {
 }
 
 /**
- * GET /api/export — raw uplink export across multiple devices.
- * `dev_euis` is a comma-separated list (required); `format=json|csv`. Capped at 50000 rows.
+ * GET /api/export — raw uplink or downlink export across multiple devices.
+ * `dev_euis` is a comma-separated list (required); `format=json|csv`; `kind=uplinks|downlinks`
+ * (defaults to uplinks). Capped at 50000 rows.
  */
 function exportHandler(db: Db, request: FastifyRequest, reply: FastifyReply): unknown {
-  const query = request.query as { dev_euis?: string; from?: string; to?: string; format?: string };
+  const query = request.query as {
+    dev_euis?: string; from?: string; to?: string; format?: string; kind?: string;
+  };
   const devEuis = (query.dev_euis ?? '')
     .split(',')
     .map((e) => normalizeEui(e))
@@ -51,7 +54,9 @@ function exportHandler(db: Db, request: FastifyRequest, reply: FastifyReply): un
     return reply.status(400).send({ error: 'NO_DEVICES', message: 'Provide dev_euis (comma-separated).' });
   }
   const range = parseRange(query.from ?? '7d', query.to, Date.now());
-  const result = exportUplinks(db, devEuis, range, query.format);
+  const result = query.kind === 'downlinks'
+    ? exportDownlinks(db, devEuis, range, query.format)
+    : exportUplinks(db, devEuis, range, query.format);
   return reply.headers(exportHeaders(result.isCsv, result.filename)).send(result.body);
 }
 
